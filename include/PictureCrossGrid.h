@@ -2,13 +2,14 @@
 
 #include <iostream>
 #include <time.h>
+#include <vector>
 #if _WIN32
 #include <windows.h>
 #undef max
 #endif
 
 #define DEFAULT_SIZE    15
-#define MAX_RUNTIME     10.0
+#define MAX_RUNTIME     2.0
 
 // For setting squares in grid
 #define OPEN            14
@@ -37,11 +38,15 @@ private:
     void initColumn(int column);
     void checkColumn(int column);
     bool invalidateColumn(int column);
+    bool checkTopBottom(int column);
+    void fillSubColumn(int column);
     void fillColumnSection(int column, int start, int end, int state);
 
     void initRow(int row);
     void checkRow(int row);
-    void invalidateRow(int row);
+    bool invalidateRow(int row);
+    bool checkLeftRight(int row);
+    void fillSubRow(int row);
     void fillRowSection(int row, int start, int end, int state);
 
     bool checkCompletion();
