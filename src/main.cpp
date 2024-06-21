@@ -30,6 +30,7 @@ int main(void) {
         int userInput = getIntInput(1, 5);
         determineUserSelection(grid, userInput);
     } while (!endProgram);
+
     std::cout << "Exiting..." << std::endl;
     
     return 0;
