@@ -2,7 +2,7 @@
 #include <limits>
 #include "../include/PictureCrossGrid.h"
 
-#define EXITCODE    -1
+#define EXITCODE    0
 #define ERRORCODE   0x7FFFFFFF
 
 void mainMenu();
@@ -13,7 +13,8 @@ void setColumn(PictureCrossGrid& grid);
 void getRow(PictureCrossGrid& grid);
 void getColumn(PictureCrossGrid& grid);
 void clearGrid(PictureCrossGrid& grid);
-void solve(PictureCrossGrid& grid);
+void quickSolve(PictureCrossGrid& grid);
+void bruteSolve(PictureCrossGrid& grid);
 
 static bool endProgram = false;
 
@@ -27,7 +28,7 @@ int main(void) {
     PictureCrossGrid grid(cols, rows);
     do {
         mainMenu();
-        int userInput = getIntInput(1, 5);
+        int userInput = getIntInput(1, 6);
         determineUserSelection(grid, userInput);
     } while (!endProgram);
 
@@ -42,7 +43,8 @@ void mainMenu() {
     std::cout << "2) Set a column"      << std::endl;
     std::cout << "3) Get a row"         << std::endl;
     std::cout << "4) Get a column"      << std::endl;
-    std::cout << "5) Solve"             << std::endl;
+    std::cout << "5) Quick Solve"       << std::endl;
+    std::cout << "6) Brute Solve"       << std::endl;
     std::cout << EXITCODE << ") Exit"   << std::endl;
 }
 
@@ -76,7 +78,10 @@ void determineUserSelection(PictureCrossGrid& grid, int userInput) {
             getColumn(grid);
             break;
         case 5:
-            solve(grid);
+            quickSolve(grid);
+            break;
+        case 6:
+            bruteSolve(grid);
             break;
         case EXITCODE:
             endProgram = true;
@@ -233,7 +238,11 @@ void getColumn(PictureCrossGrid& grid) {
     std::cout << std::endl;
 }
 
-void solve(PictureCrossGrid& grid) {
-    grid.solve();
+void quickSolve(PictureCrossGrid& grid) {
+    grid.quickSolve();
+}
+
+void bruteSolve(PictureCrossGrid& grid) {
+    grid.bruteSolve();
 }
 

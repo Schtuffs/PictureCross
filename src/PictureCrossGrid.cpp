@@ -246,8 +246,11 @@ void PictureCrossGrid::checkColumn(int column) {
 
     // If total sections are equal to the data sections
     if (totalSections == data[0]) {
-        this->fillSubColumn(column);
+        this->fillKnownSubColumn(column);
+        return;
     }
+    // Otherwise fill in guarenteed spots
+    this->fillUnknownSubColumn(column);
 }
 
 bool PictureCrossGrid::invalidateColumn(int column) {
@@ -308,7 +311,7 @@ bool PictureCrossGrid::checkTopBottom(int column) {
     return false;
 }
 
-void PictureCrossGrid::fillSubColumn(int column) {
+void PictureCrossGrid::fillKnownSubColumn(int column) {
     int* data = this->colsHeader[column];
 
     // Stores the actual starting point for the next iteration
@@ -363,6 +366,10 @@ void PictureCrossGrid::fillSubColumn(int column) {
         }
         totalIterations++;
     }
+}
+
+void PictureCrossGrid::fillUnknownSubColumn(int column) {
+
 }
 
 void PictureCrossGrid::fillColumnSection(int column, int startIndex, int spaces, int state) {
@@ -495,7 +502,8 @@ void PictureCrossGrid::checkRow(int row) {
     }
 
     if (totalSections == data[0]) {
-        this->fillSubRow(row);
+        this->fillKnownSubRow(row);
+        return;
     }
 }
 
@@ -554,7 +562,7 @@ bool PictureCrossGrid::checkLeftRight(int row) {
     return false;
 }
 
-void PictureCrossGrid::fillSubRow(int row) {
+void PictureCrossGrid::fillKnownSubRow(int row) {
     int* data = this->rowsHeader[row];
    
     // Stores the actual starting point for the next iteration
@@ -633,9 +641,9 @@ void PictureCrossGrid::fillRowSection(int row, int startIndex, int spaces, int s
 
 
 
-void PictureCrossGrid::solve() {
+void PictureCrossGrid::quickSolve() {
     clock_t begin = clock();
-    double runtime;
+    double runtime = 0;
 
     // Initialize all columns then rows
     for(int i = 0; i < this->cols; i++) {
@@ -655,13 +663,19 @@ void PictureCrossGrid::solve() {
         clock_t current = clock();
         
         runtime = (double)(current - begin) / (double)CLOCKS_PER_SEC;
-    } while(!this->checkCompletion() && runtime < MAX_RUNTIME);
+    } while(!this->checkCompletion() && runtime < MAX_QUICK_RUNTIME);
 
     std::cout << std::endl << std::endl << std::endl;
-    
     std::cout << "Total Elapsed time: " << runtime << "s" << std::endl;
+    
     this->display();
     this->clear();
+}
+
+
+
+void PictureCrossGrid::bruteSolve() {
+    
 }
 
 bool PictureCrossGrid::checkCompletion() {
@@ -677,6 +691,8 @@ bool PictureCrossGrid::checkCompletion() {
     }
     return true;
 }
+
+
 
 void PictureCrossGrid::display() {
 #if _WIN32
@@ -716,10 +732,21 @@ void PictureCrossGrid::display() {
 }
 
 void PictureCrossGrid::clear() {
+    // Clears the grid
     for(int i = 0; i < this->cols; i++) {
         for(int j = 0; j < this->rows; j++) {
             grid[i][j] = OPEN;
         }
+    }
+    
+    // Clears the completed columns
+    for(int i = 0; i < this->cols; i++) {
+        this->completeColumn[i] = false;
+    }
+
+    // Clears the completed rows
+    for(int i = 0; i < this->rows; i++) {
+        this->completeRow[i] = false;
     }
 }
 

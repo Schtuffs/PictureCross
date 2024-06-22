@@ -3,22 +3,20 @@
 #include <iostream>
 #include <time.h>
 #include <vector>
+#include <math.h>
 #if _WIN32
 #include <windows.h>
 #undef max
 #endif
 
-#define DEFAULT_SIZE    15
-#define MAX_RUNTIME     2.0
+#define DEFAULT_SIZE        15
+#define MAX_QUICK_RUNTIME   2.0
+#define MAX_BRUTE_RUNTIME   5.0
 
 // For setting squares in grid
-#define OPEN            14
-#define VALID           10
-#define INVALID         12
-
-// For determining complexity
-#define SIMPLE          1
-#define COMPLEX         2
+#define OPEN                14
+#define VALID               10
+#define INVALID             12
 
 // Test data, input as is without '// '
 // Row Data
@@ -43,19 +41,26 @@ private:
     int **colsHeader, **rowsHeader, **grid;
     int printRowWidth, printColHeight;
 
+    // Methods for quick solve
+
     void initColumn(int column);
     void checkColumn(int column);
     bool invalidateColumn(int column);
     bool checkTopBottom(int column);
-    void fillSubColumn(int column);
+    void fillKnownSubColumn(int column);
+    void fillUnknownSubColumn(int column);
     void fillColumnSection(int column, int start, int end, int state);
 
     void initRow(int row);
     void checkRow(int row);
     bool invalidateRow(int row);
     bool checkLeftRight(int row);
-    void fillSubRow(int row);
+    void fillKnownSubRow(int row);
+    void fillUnknownSubRow(int row);
     void fillRowSection(int row, int start, int end, int state);
+
+    // Methods for brute solve
+
 
     bool checkCompletion();
     void display();
@@ -81,7 +86,8 @@ public:
     int* getRow(int row);
 
     // Call to solve all currently inputted data
-    void solve();
+    void quickSolve();
+    void bruteSolve();
 
     // Removes memory allocated during column/row sets
     ~PictureCrossGrid();
