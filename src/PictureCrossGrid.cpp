@@ -35,8 +35,8 @@ PictureCrossGrid::PictureCrossGrid(int columns, int rows) {
     this->cols = columns;
     this->rows = rows;
     
-    this->completeColumn = new bool[this->rows];
-    this->completeRow = new bool[this->cols];
+    this->completeColumn = new bool[this->cols];
+    this->completeRow = new bool[this->rows];
 
     // Sets up column pointers
     this->colsHeader = new int*[this->cols];
@@ -44,7 +44,7 @@ PictureCrossGrid::PictureCrossGrid(int columns, int rows) {
         this->colsHeader[i] = new int[2];
         this->colsHeader[i][0] = 1;
         this->colsHeader[i][1] = 0;
-        this->completeRow[i] = false; // Size based on total columns
+        this->completeColumn[i] = false;
     }
     
 
@@ -54,7 +54,7 @@ PictureCrossGrid::PictureCrossGrid(int columns, int rows) {
         this->rowsHeader[i] = new int[2];
         this->rowsHeader[i][0] = 1;
         this->rowsHeader[i][1] = 0;
-        this->completeColumn[i] = false; // Size based on total rows
+        this->completeRow[i] = false;
     }
     
 
@@ -303,7 +303,6 @@ bool PictureCrossGrid::checkTopBottom(int column) {
 
     // Check if all required data was filled in during this check
     if (completeData == data[0]) {
-        
         this->fillColumnSection(column, 0, this->rows, INVALID);
         this->completeColumn[column] = true;
         return true;
@@ -366,10 +365,6 @@ void PictureCrossGrid::fillKnownSubColumn(int column) {
         }
         totalIterations++;
     }
-}
-
-void PictureCrossGrid::fillUnknownSubColumn(int column) {
-
 }
 
 void PictureCrossGrid::fillColumnSection(int column, int startIndex, int spaces, int state) {
@@ -675,16 +670,68 @@ void PictureCrossGrid::quickSolve() {
 
 
 void PictureCrossGrid::bruteSolve() {
-    
+    std::cout << "This may take a while... (Allow up to " << MAX_BRUTE_RUNTIME << "s)" << std::endl;
+    std::cout << "Do not expect this to solve anything above an 5x5 grid." << std::endl;
+
+    clock_t begin = clock();
+    double runtime = 0;
+
+    // Simply does a binary-like progression through the whole grid
+    int maxIndex = 0;
+    do {
+        // Loops until maxIndex is reached, instead of recursive function
+        for(int j = 0; j <= maxIndex; j++) {
+            int col = j % this->cols;
+            int row = j / this->cols;
+            
+            if (this->grid[col][row] == VALID) {
+                this->grid[col][row] = INVALID;
+            }
+            else {
+                this->grid[col][row] = VALID;
+                break;
+            }
+            
+            if (j == maxIndex) {
+                maxIndex++;
+            }
+        }
+
+        // Does the check for datapoints
+        for(int i = 0; i < this->cols; i++) {
+            if (!this->invalidateColumn(i)) {
+                this->completeColumn[i] = false;
+            }
+        }
+        for(int i = 0; i < this->rows; i++){
+            if (!this->invalidateRow(i)) {
+                this->completeRow[i] = false;
+            }
+        }
+
+        clock_t current = clock();
+        runtime = (double)(current - begin) / (double)CLOCKS_PER_SEC;
+    } while (!this->checkCompletion() && runtime < MAX_BRUTE_RUNTIME);
+
+    if (this->checkCompletion()) {
+        std::cout << std::endl << std::endl << std::endl;
+        std::cout << "Total Elapsed time: " << runtime << "s" << std::endl;
+        this->display();
+    }
+    else {
+        std::cout << std::endl << std::endl << std::endl;
+        std::cout << "Could not solve grid..." << std::endl;
+    }
+    this->clear();
 }
 
 bool PictureCrossGrid::checkCompletion() {
-    for(int i = 0; i < this->cols; i++) {
+    for(int i = 0; i < this->rows; i++) {
         if (!this->completeRow[i]) {
             return false;
         }
     }
-    for(int i = 0; i < this->rows; i++) {
+    for(int i = 0; i < this->cols; i++) {
         if (!this->completeColumn[i]) {
             return false;
         }

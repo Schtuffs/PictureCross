@@ -38,14 +38,14 @@ int main(void) {
 }
 
 void mainMenu() {
-    std::cout << "Main Menu"            << std::endl;
-    std::cout << "1) Set a row"         << std::endl;
-    std::cout << "2) Set a column"      << std::endl;
-    std::cout << "3) Get a row"         << std::endl;
-    std::cout << "4) Get a column"      << std::endl;
-    std::cout << "5) Quick Solve"       << std::endl;
-    std::cout << "6) Brute Solve"       << std::endl;
-    std::cout << EXITCODE << ") Exit"   << std::endl;
+    std::cout << "Main Menu"                                                    << std::endl;
+    std::cout << "1) Set a row"                                                 << std::endl;
+    std::cout << "2) Set a column"                                              << std::endl;
+    std::cout << "3) Get a row"                                                 << std::endl;
+    std::cout << "4) Get a column"                                              << std::endl;
+    std::cout << "5) Quick Solve"                                               << std::endl;
+    std::cout << "6) Brute Solve (can take up to " << MAX_BRUTE_RUNTIME << "s)" << std::endl;
+    std::cout << EXITCODE << ") Exit"                                           << std::endl;
 }
 
 int getIntInput(int min, int max) {
@@ -115,7 +115,7 @@ void setRow(PictureCrossGrid& grid) {
         if (userInput == EXITCODE)
             return;
         
-    } while (0 > userInput || userInput > grid.getRowCount());
+    } while (0 > userInput || userInput > 5);
 
     int totalValues = userInput;
     int* data = new int[totalValues];
@@ -173,7 +173,7 @@ void setColumn(PictureCrossGrid& grid) {
         if (userInput == EXITCODE)
             return;
         
-    } while (0 > userInput || userInput > grid.getColumnCount());
+    } while (0 > userInput || userInput > 5);
 
     int totalValues = userInput;
     int* data = new int[totalValues];
