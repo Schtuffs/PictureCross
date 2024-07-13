@@ -1,31 +1,5 @@
 #include "../include/PictureCrossGrid.h"
 
-PictureCrossGrid::PictureCrossGrid() {
-    this->cols = DEFAULT_SIZE;
-    this->rows = DEFAULT_SIZE;
-
-    this->colsHeader = new int*[this->cols];
-    for(int i = 0; i < this->cols; i++) {
-        this->colsHeader[i] = new int[1];
-        this->colsHeader[i][0] = 0;
-    }
-
-    this->rowsHeader = new int*[this->rows];
-    for(int i = 0; i < this->rows; i++) {
-        this->rowsHeader[i] = new int[1];
-        this->rowsHeader[i][0] = 0;
-    }
-
-    this->grid = new int*[this->cols];
-    for(int i = 0; i < this->cols; i++) {
-        this->grid[i] = new int[this->rows];
-        for(int j = 0; j < this->rows; j++) {
-            this->grid[i][j] = OPEN;
-        }
-    }
-    std::cout << "Grid created with size of " << cols << "x" << rows << "." << std::endl;
-}
-
 PictureCrossGrid::PictureCrossGrid(int columns, int rows) {
     if (columns <= 0 || rows <= 0) {
         columns = DEFAULT_SIZE;
@@ -142,492 +116,355 @@ int* PictureCrossGrid::getRow(int row) {
 
 
 
-void PictureCrossGrid::initColumn(int column) {
-    // Stores the array information for this column
-    // Easier for indexing later
-    int* data = this->colsHeader[column];
+void PictureCrossGrid::init(int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    // Stores data from column or row information for easier data use
+    int* data = dataHeader[crNum];
 
-    // Take total rows, account for the total spaces (removing the extra number for spaces), then subtract all of the numbers
-    int remove = this->rows - (data[0] - 1);
+    // Takes total cols/rows, accounts for extra spaces between, and calculates total amount of known data
+    int remove = maxCR - (data[0] - 1);
     for(int i = 1; i <= data[0]; i++) {
         remove -= data[i];
     }
 
-    // If the numbers are able to fill column, fill each cell
-
     if (remove == 0) {
-        // Loop through all data points add add them to column
+        // Loop through all data points add add them to grid
         int startIndex = 0;
         for(int i = 1; i <= data[0]; i++) {
             // Sets the valid data
-            this->fillColumnSection(column, startIndex, data[i], VALID);
-
+            (this->*fillSection)(crNum, startIndex, data[i], VALID);
             // Moves the start index for the invalid square
             startIndex += data[i];
 
             // Adds the invalid square
-            this->fillColumnSection(column, startIndex, 1, INVALID);
+            (this->*fillSection)(crNum, startIndex, 1, INVALID);
 
             // Final update for after invalid square
             startIndex++;
         }
-        // To prevent everything in another else statement
+
+        // Completes dataset and returns
+        completeHeader[crNum] = true;
         return;
     }
 
-    // Data isn't equal to total column value
 
-    // Starts indexes at first guarenteed data location
-    int startIndex = remove;
+    // Data doesn't fully fill section
+
+    // Stores index for filling data
+    int startIndex = 0;
     for(int i = 1; i <= data[0]; i++) {
-        // Value of data to fill
+        // Number of datapoints to fill
         int valueToFill = data[i];
 
-        // Removes length from this section
+        // Removes extra points for proper resizing
         valueToFill -= remove;
 
-        this->fillColumnSection(column, startIndex, valueToFill, VALID);
-        // Start index increases by half of removed(rounded up) and by the data value
-        startIndex += ((remove + 1) / 2) + data[i];
+        // Fill in section data
+        (this->*fillSection)(crNum, startIndex + remove, valueToFill, VALID);
+            
+        // Start index increases by the data value and extra space
+        startIndex += data[i] + 1;
     }
 }
 
-void PictureCrossGrid::checkColumn(int column) {
-    // Check if this columns data is already complete
-    if (this->completeColumn[column]) {
-        return;
-    }
-
-    // First, invalidate column if applicable. If the rest of the column is invalidated, then return
-    if (this->invalidateColumn(column)) {
-        return;
-    }
-
-    int* data = this->colsHeader[column];
+void PictureCrossGrid::check(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    // Checks first if all squares for col/row have been filled in
     
-    // See if first number can fit at top
-    int startIndex = 0, totalSpaces = 0, currentValueCheck = 1;
-    for(int i = 0; i < this->rows; i++) {
-        // Once invalid is found, reset spaces
-        if (this->grid[column][i] == INVALID) {
-            // If space isn't large enough, fill with invalid
-            if (totalSpaces < data[currentValueCheck]) {
-                this->fillColumnSection(column, startIndex, totalSpaces, INVALID);
-                startIndex = totalSpaces;
-                totalSpaces = 0;
-            }
-        }
-
-        totalSpaces++;
-
-        // Check if slot is big enough
-    }
-    
-    if (this->checkTopBottom(column)) {
+    if (this->checkTotalSquares(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
         return;
     }
 
-    // Otherwise check how much info can be filled still
-    
-    // See if sections have been solved
-    int totalSections = 0;
-    int holdState = OPEN;
-    for(int i = 0; i < this->rows; i++) {
-        // Checks for first valid between invalid
-        if (this->grid[column][i] == VALID && holdState != VALID) {
-            totalSections++;
-            holdState = VALID;
-        } 
-        // Checks for invalid square to allow for another section to be sensed
-        else if (this->grid[column][i] == INVALID && holdState != INVALID) {
-            holdState = INVALID;
-        }
-    }
-
-    // If total sections are equal to the data sections
-    if (totalSections == data[0]) {
-        this->fillKnownSubColumn(column);
+    // Checks for squares along the edge to fill in outer points
+    if (this->checkEdges(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
         return;
     }
-    // Otherwise fill in guarenteed spots
-    this->fillUnknownSubColumn(column);
+
+    // Checks for different sub sections
+    if (this->checkSubSections(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
+        return;
+    }
 }
 
-bool PictureCrossGrid::invalidateColumn(int column) {
-    int* data = this->colsHeader[column];
+bool PictureCrossGrid::checkTotalSquares(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    // Allows for easy indexing of data
+    int *data = dataHeader[crNum];
 
-    // Checks how many valid squares are present
-    int valid = 0;
-    for(int i = 0; i < this->rows; i++) {
-        if (this->grid[column][i] == VALID) {
-            valid++;
+    // Check how many valid squares are present
+    int validSquares = 0;
+    for(int i = 0; i < maxCR; i++) {
+        if (this->checkGrid(COL_OR_ROW, crNum, i, VALID)) {
+            validSquares++;
         }
     }
 
-    // Determine how many spaces should be taken up
+    // Check how many spaces there should be in total
     int takenSpaces = 0;
     for(int i = 1; i <= data[0]; i++) {
         takenSpaces += data[i];
     }
 
-    // Compare values, if equal, rest of column should be invalid
-    if (takenSpaces == valid) {
-        this->fillColumnSection(column, 0, this->rows, INVALID);
-        this->completeColumn[column] = true;
+    // Check if all squares are taken up properly
+    if (validSquares == takenSpaces) {
+        (this->*fillSection)(crNum, 0, maxCR, INVALID);
+        completeHeader[crNum] = true;
         return true;
     }
     return false;
 }
 
-bool PictureCrossGrid::checkTopBottom(int column) {
-    int* data = this->colsHeader[column];
+bool PictureCrossGrid::checkEdges(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    int *data = dataHeader[crNum];
 
-    // Check if first number is complete
-    int spaces = 0;
-
-    // Top check
+    // First index check
     int completeData = 0;
-    if (this->grid[column][0] == VALID) {
-        this->fillColumnSection(column, 0, data[1], VALID);
-        this->fillColumnSection(column, data[1], 1, INVALID);
+    if (this->checkGrid(COL_OR_ROW, crNum, 0, VALID)) {
+        
+        (this->*fillSection)(crNum, 0, data[1], VALID);
+        (this->*fillSection)(crNum, data[1], 1, INVALID);
         completeData++;
     }
-    // Bottom check
-    if (this->grid[column][this->rows - 1] == VALID) {
+
+    // Last index check
+    if (this->checkGrid(COL_OR_ROW, crNum, maxCR - 1, VALID)) {
         int finalIndex = data[data[0]];
-        int startIndex = this->rows - finalIndex;
-        this->fillColumnSection(column, startIndex, finalIndex, VALID);
-        this->fillColumnSection(column, startIndex - 1, 1, INVALID);
+        int startIndex = maxCR - finalIndex;
+        (this->*fillSection)(crNum, startIndex, finalIndex, VALID);
+        (this->*fillSection)(crNum, startIndex - 1, 1, INVALID);
         completeData++;
     }
 
     // Check if all required data was filled in during this check
     if (completeData == data[0]) {
-        this->fillColumnSection(column, 0, this->rows, INVALID);
-        this->completeColumn[column] = true;
+        (this->*fillSection)(crNum, 0, this->rows, INVALID);
+        completeHeader[crNum] = true;
+        return true;
+    }
+
+    // If no, check if there is an invalid square blocking data from edges
+    // First edge check
+
+    // Variable for after this section
+    int firstIndex = 0;
+
+    for(int i = firstIndex; i < data[1]; i++) {
+        if (this->checkGrid(COL_OR_ROW, crNum, i, INVALID)) {
+            (this->*fillSection)(crNum, 0, i, INVALID);
+            firstIndex = i + 1;
+        }
+    }
+    
+    // Variable for after this section
+    int lastIndex = maxCR - 1;
+
+    // Second edge check
+    for(int i = lastIndex; i >= maxCR - data[data[0]]; i--) {
+        if (this->checkGrid(COL_OR_ROW, crNum, i, INVALID)) {
+            (this->*fillSection)(crNum, i, maxCR, INVALID);
+            lastIndex = i - 1;
+        }
+    }
+
+    // Finally, check if first known point is close enough to a wall to add more information
+
+    // First edge
+    for(int i = firstIndex; i < firstIndex + data[1]; i++) {
+        if (this->checkGrid(COL_OR_ROW, crNum, i, VALID)) {
+            int remove = i - firstIndex;
+            (this->*fillSection)(crNum, i, data[1] - remove, VALID);
+            break;
+        }
+    }
+
+    // Second edge
+    for(int i = lastIndex; i >= lastIndex - data[data[0]]; i--) {
+        if (this->checkGrid(COL_OR_ROW, crNum, i, VALID)) {
+            int remove = lastIndex - i;
+            int spacing = data[data[0]] - remove - 1;
+            (this->*fillSection)(crNum, i - spacing, data[data[0]] - remove, VALID);
+            break;
+        }
+    }
+
+    return false;
+}
+
+bool PictureCrossGrid::checkSubSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    int *data = dataHeader[crNum];
+    
+    // First, tries to fill in sections that cant have valid squares
+    int openSquares = 0, startIndex = 0;
+    for(int i = 0; i < maxCR; i++) {
+        if (this->checkGrid(COL_OR_ROW, crNum, i, VALID) ||
+            this->checkGrid(COL_OR_ROW, crNum, i, OPEN)) {
+            
+            openSquares++;
+        }
+        else {
+            for (int j = 1; j <= data[0]; j++) {
+                if (openSquares >= data[j]) {
+                    break;
+                }
+                else if (j == data[0]) {
+                    (this->*fillSection)(crNum, startIndex, i - startIndex, INVALID);
+                }
+            }
+            startIndex = i;
+            openSquares = 0;
+        }
+    }
+    
+    // Next, count open sections
+    int totalSections = 0;
+    int holdState = OPEN;
+    for(int i = 0; i < this->rows; i++) {
+        // Checks for first valid between invalid
+        if ((this->checkGrid(COL_OR_ROW, crNum, i, VALID) ||
+            this->checkGrid(COL_OR_ROW, crNum, i, OPEN)) && 
+            holdState != VALID) {
+
+            totalSections++;
+            holdState = VALID;
+        } 
+        // Checks for invalid square to allow for another section to be sensed
+        else if (this->checkGrid(COL_OR_ROW, crNum, i, INVALID) && holdState != INVALID) {
+            holdState = INVALID;
+        }
+    }
+    
+    // Now, compare open sections to what the sections should be
+    
+    // Equal amount of sections
+    if (totalSections == data[0]) {
+        if (this->fillEqualSections(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PictureCrossGrid::fillEqualSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    int* data = dataHeader[crNum];
+
+    // Stores the number of completed sections
+    int totalFilledSections = 0;
+
+    int currentIndex = 0;
+    for(int i = 1; i <= data[0]; i++) {
+        int validSquares = 0, openSquares = 0, startIndex = 0, validStartIndex = -1;
+        bool openingFound = false, validFound = false;
+        
+        while (currentIndex < maxCR) {
+            // Finds where the opening begins
+            if (!this->checkGrid(COL_OR_ROW, crNum, currentIndex, INVALID) && !openingFound) {
+                
+                openingFound = true;
+                startIndex = currentIndex;
+            }
+
+            // Counts all of the open/valid squares
+            if (this->checkGrid(COL_OR_ROW, crNum, currentIndex, VALID) && openingFound) {
+                validSquares++;
+                openSquares++;
+                
+                // Fills in between valid square sections, otherwise set start index
+                if (validStartIndex != -1)
+                    (this->*fillSection)(crNum, validStartIndex, currentIndex - validStartIndex, VALID);
+                else
+                    validStartIndex = currentIndex;
+            }
+            else if (this->checkGrid(COL_OR_ROW, crNum, currentIndex, OPEN) && openingFound) {
+                openSquares++;
+            }
+
+            // Leaves once end of opening found
+            else if (this->checkGrid(COL_OR_ROW, crNum, currentIndex, INVALID) &&
+                    openingFound) {
+                break;
+            }
+            currentIndex++;
+        }
+
+        // Determines if size is same as data. All data is already filled in
+        if (validSquares == data[i]) {
+            (this->*fillSection)(crNum, startIndex - 1, data[i] + 2, INVALID);
+            totalFilledSections++;
+        }
+        // Otherwise fill in as much as possible. Open squares are equal to the data
+        else if (openSquares == data[i]) {
+            (this->*fillSection)(crNum, startIndex, openSquares, VALID);
+            totalFilledSections++;
+        }
+        // Data is too small to fit in section. Must shrink data down
+        else {
+            int remove = openSquares - data[i];
+            (this->*fillSection)(crNum, startIndex + remove, data[i] - remove, VALID);
+        }
+    }
+
+    // If all sections were fully filled in, can complete section
+    if (totalFilledSections == data[0]) {
+        (this->*fillSection)(crNum, 0, maxCR, INVALID);
+        completeHeader[crNum] = true;
+        return true;
+    }
+
+    return false;
+}
+
+bool PictureCrossGrid::checkGrid(int COL_OR_ROW, int crNum, int index, int state) {
+    if ((this->grid[crNum][index] == state && COL_OR_ROW == COL) ||
+        (this->grid[index][crNum] == state && COL_OR_ROW == ROW)) {
+        
         return true;
     }
     return false;
 }
 
-void PictureCrossGrid::fillKnownSubColumn(int column) {
-    int* data = this->colsHeader[column];
 
-    // Stores the actual starting point for the next iteration
-    int nextStartIndex = 0;
-
-    // Prevents infinite loops
-    int totalIterations = 0;
-
-    // Main loop for going through each data point
-    for(int i = 1; i <= data[0] && totalIterations < this->rows; i++) {
-        // Counts the valid squares in a section
-        int validSquares = 0;
-
-        // Gets moved along as loop goes further
-        int startIndex = nextStartIndex;
-
-        // Stores if section has found a valid square
-        bool isValidFound = false;
-        
-        // Loops through the next part of the column to find the proper gap
-        for(int j = nextStartIndex; j < this->rows; j++) {
-            // Moves pointer for next time through loop
-            nextStartIndex++;
-
-            // If a valid point is found, mark it
-            if (this->grid[column][j] == VALID)
-                isValidFound = true;
-
-            // Finds an opening
-            if (this->grid[column][j] != INVALID) {
-                validSquares++;
-            }
-            // Invalid found
-            else {
-                break;
-            }
-        }
-
-        // See if box is the exact size
-        if (isValidFound && validSquares == data[i]) {
-            this->fillColumnSection(column, startIndex, data[i], VALID);
-        }
-
-        // See if the spot is big enough
-        else if (isValidFound && validSquares >= data[i]) {
-            int remove = validSquares - data[i];
-            this->fillColumnSection(column, startIndex + remove, data[i] - (remove * 2), VALID);
-        }
-        // Slot either wasn't big enough, or valid square wasn't found
-        else {
-            i--; // Lets this index continue to try to find valid opening
-        }
-        totalIterations++;
-    }
-}
 
 void PictureCrossGrid::fillColumnSection(int column, int startIndex, int spaces, int state) {
     // Ensures data begins within bounds of the array
-    if (0 > startIndex || startIndex > this->rows)
+    if (startIndex >= this->rows) {
         return;
+    }
     
     for(int i = 0; i < spaces; i++) {
         // Ensures that data can't out of index during looping
-        if (i + startIndex > this->rows)
+        if (i + startIndex >= this->rows)
             return;
         
-        // Check that spot isn't already filled in
-        if (this->grid[column][i + startIndex] != OPEN) {
+        // Checks index is valid
+        if (i + startIndex < 0)
             continue;
-        }
+        
+        // Check that spot isn't already filled in
+        if (this->grid[column][i + startIndex] != OPEN)
+            continue;
         
         // Sets data index to be proper state
         this->grid[column][i + startIndex] = state;
     }
 }
 
-
-
-void PictureCrossGrid::initRow(int row) {
-    // Stores the array information for this row
-    // Easier for indexing later
-    int* data = this->rowsHeader[row];
-
-    // Take total columns, account for the total spaces (removing the extra number for spaces), then subtract all of the numbers
-    int remove = this->cols - (data[0] - 1);
-    for(int i = 1; i <= data[0]; i++) {
-        remove -= data[i];
-    }
-
-    // If the numbers are able to fill row, fill each cell
-    if (remove == 0) {
-        // Loop through all data points add add them to row
-        int startIndex = 0;
-        for(int i = 1; i <= data[0]; i++) {
-            // Sets the valid data
-            this->fillRowSection(row, startIndex, data[i], VALID);
-
-            // Moves the start index for the invalid square
-            startIndex += data[i];
-
-            // Adds the invalid square after dataset
-            if (i != data[0])
-                this->fillRowSection(row, startIndex, 1, INVALID);
-
-            // Final update for after invalid square
-            startIndex++;
-        }
-        // Final filling of all spaces
-        this->fillRowSection(row, 0, this->cols, INVALID);
-
-        // To prevent everything in another else statement
-        return;
-    }
-
-    // Data isn't equal to total row value
-
-    // See how much data is known from edge points of grid
-    // Left check
-    this->checkLeftRight(row);
-
-    // Starts indexes at first guarenteed data location
-    int startIndex = remove;
-    for(int i = 1; i <= data[0]; i++) {
-        // Value of data to fill
-        int valueToFill = data[i];
-
-        // Removes length from this section
-        valueToFill -= remove;
-
-        this->fillRowSection(row, startIndex, valueToFill, VALID);
-        // Start index increases by half of removed(rounded up) and by the data value
-        startIndex += ((remove + 1) / 2) + data[i];
-    }
-}
-
-void PictureCrossGrid::checkRow(int row) {
-    // Check if this columns data is already complete
-    if (this->completeRow[row]) {
-        return;
-    }
-
-    // First, invalidate column if applicable. If the rest of the column is invalidated, then return
-    if (this->invalidateRow(row)) {
-        return;
-    }
-
-    int* data = this->rowsHeader[row];
-    
-    // See if first number can fit at top
-    int startIndex = 0, totalSpaces = 0, currentValueCheck = 1;
-    for(int i = 0; i < this->cols; i++) {
-        // Once invalid is found, reset spaces
-        if (this->grid[i][row] == INVALID) {
-            // If space isn't large enough, fill with invalid
-            if (totalSpaces < data[currentValueCheck]) {
-                this->fillRowSection(row, startIndex, totalSpaces, INVALID);
-                startIndex = totalSpaces;
-                totalSpaces = 0;
-            }
-        }
-        totalSpaces++;
-
-    // Check if slot is big enough
-    }
-    if (this->checkLeftRight(row)) {
-        return;
-    }
-
-    // Otherwise check how much info can be filled still
-    
-    // See if sections have been solved
-    int totalSections = 0;
-    int holdState = 0;
-    for(int i = 0; i < this->cols; i++) {
-        // Checks for first valid between invalid
-        if (this->grid[i][row] == VALID && holdState != VALID) {
-            totalSections++;
-            holdState = VALID;
-        } 
-        // Checks for invalid square to allow for another section to be sensed
-        else if (this->grid[i][row] == INVALID && holdState != INVALID) {
-            holdState = INVALID;
-        }
-    }
-
-    if (totalSections == data[0]) {
-        this->fillKnownSubRow(row);
-        return;
-    }
-}
-
-bool PictureCrossGrid::invalidateRow(int row) {
-    int* data = this->rowsHeader[row];
-
-    // Checks how many valid squares are present
-    int valid = 0;
-    for(int i = 0; i < this->cols; i++) {
-        if (this->grid[i][row] == VALID) {
-            valid++;
-        }
-    }
-
-    // Determine how many spaces should be taken up
-    int takenSpaces = 0;
-    for(int i = 1; i <= data[0]; i++) {
-        takenSpaces += data[i];
-    }
-
-    // Compare values, if equal, rest of row should be invalid
-    if (takenSpaces == valid) {
-        this->fillRowSection(row, 0, this->cols, INVALID);
-        this->completeRow[row] = true;
-        return true;
-    }
-    return false;
-}
-
-bool PictureCrossGrid::checkLeftRight(int row) {
-    int* data = this->rowsHeader[row];
-    
-    // Left check
-    int completeData = 0;
-    if (this->grid[0][row] == VALID) {
-        this->fillRowSection(row, 0, data[1], VALID);
-        this->fillRowSection(row, data[1], 1, INVALID);
-        completeData++;
-    }
-    // Right check
-    if (this->grid[this->cols - 1][row] == VALID) {
-        // Gets the final info point from data
-        int finalIndex = data[data[0]];
-        int startIndex = this->cols - finalIndex;
-        this->fillRowSection(row, startIndex, finalIndex, VALID);
-        this->fillRowSection(row, startIndex-1, 1, INVALID);
-        completeData++;
-    }
-
-    // Check if all required data was filled in during this check
-    if (completeData == data[0]) {
-        this->fillRowSection(row, 0, this->cols, INVALID);
-        this->completeRow[row] = true;
-        return true;
-    }
-    return false;
-}
-
-void PictureCrossGrid::fillKnownSubRow(int row) {
-    int* data = this->rowsHeader[row];
-   
-    // Stores the actual starting point for the next iteration
-    int nextStartIndex = 0;
-
-    // Prevents infinite loops
-    int totalIterations = 0;
-
-    // Main loop for going through each data point
-    for(int i = 1; i <= data[0] && totalIterations < this->cols; i++) {
-        // Counts the valid squares in a section
-        int validSquares = 0;
-
-        // Gets moved along as loop goes further
-        int startIndex = nextStartIndex;
-
-        // Stores if section has found a valid square
-        bool isValidFound = false;
-        
-        // Loops through the next part of the row to find the proper gap
-        for(int j = nextStartIndex; j < this->cols; j++) {
-            // Moves pointer for next time through loop
-            nextStartIndex++;
-
-            // If a valid point is found, mark it
-            if (this->grid[j][row] == VALID)
-                isValidFound = true;
-
-            // Finds an opening
-            if (this->grid[j][row] != INVALID) {
-                validSquares++;
-            }
-            // Invalid found
-            else {
-                break;
-            }
-        }
-
-        // See if box is the exact size
-        if (isValidFound && validSquares == data[i]) {
-            this->fillRowSection(row, startIndex, data[i], VALID);
-        }
-
-        // See if the spot is big enough
-        else if (isValidFound && validSquares >= data[i]) {
-            int remove = validSquares - data[i];
-            this->fillRowSection(row, startIndex + remove, data[i] - (remove * 2), VALID);
-        }
-        // Slot either wasn't big enough, or valid square wasn't found
-        else {
-            i--; // Lets this index continue to try to find valid opening
-        }
-        totalIterations++;
-    }
-}
-
 void PictureCrossGrid::fillRowSection(int row, int startIndex, int spaces, int state) {
     // Ensures data begins within bounds of the array
-    if (0 > startIndex || startIndex > this->cols)
+    if (startIndex >= this->cols) {
         return;
+    }
     
     for(int i = 0; i < spaces; i++) {
         // Ensures that data can't out of index during looping
-        if (i + startIndex > this->cols)
+        if (i + startIndex >= this->cols) {
             return;
+        }
+
+        // Checks index is valid
+        if (i + startIndex < 0)
+            continue;
         
         // Check that spot isn't already filled in
-        if (this->grid[i + startIndex][row] != OPEN) {
+        if (this->grid[i + startIndex][row] != OPEN)
             continue;
-        }
         
         // Sets data index to be proper state
         this->grid[i + startIndex][row] = state;
@@ -642,22 +479,26 @@ void PictureCrossGrid::quickSolve() {
 
     // Initialize all columns then rows
     for(int i = 0; i < this->cols; i++) {
-        this->initColumn(i);
-    }
-    for(int i = 0; i < this->rows; i++) {
-        this->initRow(i);
+        this->init(i, this->colsHeader, this->rows, this->completeColumn, &PictureCrossGrid::fillColumnSection);
     }
     
+    for(int i = 0; i < this->rows; i++) {
+        this->init(i, this->rowsHeader, this->cols, this->completeRow, &PictureCrossGrid::fillRowSection);
+    }
+    
+    // Loops until either time limit is hit, or puzzle is solved
     do {
         for(int i = 0; i < this->cols; i++) {
-            this->checkColumn(i);
+            this->check(COL, i, this->colsHeader, this->rows, this->completeColumn, &PictureCrossGrid::fillColumnSection);
         }
+
         for(int i = 0; i < this->rows; i++) {
-            this->checkRow(i);
+            this->check(ROW, i, this->rowsHeader, this->cols, this->completeRow, &PictureCrossGrid::fillRowSection);
         }
+
         clock_t current = clock();
-        
         runtime = (double)(current - begin) / (double)CLOCKS_PER_SEC;
+
     } while(!this->checkCompletion() && runtime < MAX_QUICK_RUNTIME);
 
     std::cout << std::endl << std::endl << std::endl;
@@ -666,8 +507,6 @@ void PictureCrossGrid::quickSolve() {
     this->display();
     this->clear();
 }
-
-
 
 void PictureCrossGrid::bruteSolve() {
     std::cout << "This may take a while... (Allow up to " << MAX_BRUTE_RUNTIME << "s)" << std::endl;
@@ -697,18 +536,21 @@ void PictureCrossGrid::bruteSolve() {
             }
         }
 
-        // Does the check for datapoints
-        for(int i = 0; i < this->cols; i++) {
-            if (!this->invalidateColumn(i)) {
-                this->completeColumn[i] = false;
-            }
-        }
-        for(int i = 0; i < this->rows; i++){
-            if (!this->invalidateRow(i)) {
-                this->completeRow[i] = false;
-            }
-        }
+        // // Does the check for datapoints
+        // for(int i = 0; i < this->cols; i++) {
+        //     if (!this->invalidateColumn(i)) {
+        //         this->completeColumn[i] = false;
+        //         goto bruteEnd;
+        //     }
+        // }
+        // for(int i = 0; i < this->rows; i++){
+        //     if (!this->invalidateRow(i)) {
+        //         this->completeRow[i] = false;
+        //         goto bruteEnd;
+        //     }
+        // }
 
+    bruteEnd:
         clock_t current = clock();
         runtime = (double)(current - begin) / (double)CLOCKS_PER_SEC;
     } while (!this->checkCompletion() && runtime < MAX_BRUTE_RUNTIME);
@@ -721,9 +563,12 @@ void PictureCrossGrid::bruteSolve() {
     else {
         std::cout << std::endl << std::endl << std::endl;
         std::cout << "Could not solve grid..." << std::endl;
+        this->display();
     }
     this->clear();
 }
+
+
 
 bool PictureCrossGrid::checkCompletion() {
     for(int i = 0; i < this->rows; i++) {
@@ -738,8 +583,6 @@ bool PictureCrossGrid::checkCompletion() {
     }
     return true;
 }
-
-
 
 void PictureCrossGrid::display() {
 #if _WIN32
