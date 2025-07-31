@@ -1,4 +1,4 @@
-#include "../include/PictureCrossGrid.h"
+#include "../include/PictureCrossGrid_old.h"
 
 PictureCrossGrid::PictureCrossGrid(int columns, int rows) {
     if (columns <= 0 || rows <= 0) {
@@ -173,12 +173,12 @@ void PictureCrossGrid::check(int COL_OR_ROW, int crNum, int **dataHeader, int ma
     if (this->checkTotalSquares(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
         return;
     }
-
+    
     // Checks for squares along the edge to fill in outer points
     if (this->checkEdges(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
         return;
     }
-
+    
     // Checks for different sub sections
     if (this->checkSubSections(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
         return;
@@ -339,12 +339,32 @@ bool PictureCrossGrid::checkSubSections(int COL_OR_ROW, int crNum, int **dataHea
             return true;
         }
     }
+    else {
+        if (this->fillUnequalSections(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection)) {
+            return true;
+        }
+    }
     return false;
 }
 
 bool PictureCrossGrid::fillEqualSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
     int* data = dataHeader[crNum];
 
+    int totalFilledSections = this->fillEqualSectionsValid(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection);
+
+    // If all sections were fully filled in, can complete section
+    if (totalFilledSections == data[0]) {
+        (this->*fillSection)(crNum, 0, maxCR, INVALID);
+        completeHeader[crNum] = true;
+        return true;
+    }
+
+    return this->fillEqualSectionsInvalid(COL_OR_ROW, crNum, dataHeader, maxCR, completeHeader, fillSection);
+}
+
+int PictureCrossGrid::fillEqualSectionsValid(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    int* data = dataHeader[crNum];
+    
     // Stores the number of completed sections
     int totalFilledSections = 0;
 
@@ -377,8 +397,7 @@ bool PictureCrossGrid::fillEqualSections(int COL_OR_ROW, int crNum, int **dataHe
             }
 
             // Leaves once end of opening found
-            else if (this->checkGrid(COL_OR_ROW, crNum, currentIndex, INVALID) &&
-                    openingFound) {
+            else if (this->checkGrid(COL_OR_ROW, crNum, currentIndex, INVALID) && openingFound) {
                 break;
             }
             currentIndex++;
@@ -400,15 +419,111 @@ bool PictureCrossGrid::fillEqualSections(int COL_OR_ROW, int crNum, int **dataHe
             (this->*fillSection)(crNum, startIndex + remove, data[i] - remove, VALID);
         }
     }
+    return totalFilledSections;
+}
 
-    // If all sections were fully filled in, can complete section
-    if (totalFilledSections == data[0]) {
-        (this->*fillSection)(crNum, 0, maxCR, INVALID);
-        completeHeader[crNum] = true;
-        return true;
+bool PictureCrossGrid::fillEqualSectionsInvalid(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    int* data = dataHeader[crNum];
+    
+    // Otherwise, fill datapoints too far away from valid indexes
+    int openSquares = 0, validSquares = 0, openStart = -1, validStart = -1;
+    bool openFound = false, validFound = false;
+    for(int i = 1, j = 0; i <= data[0]; i++) {
+        for(; j < maxCR; j++) {
+            // Find valid squares in section to count
+            if (this->checkGrid(COL_OR_ROW, crNum, j, VALID)) {
+                openSquares++;
+                validSquares++;
+    
+                // Saves the openings
+                if (!openStart) {
+                    openStart = j;
+                }
+                if (!validFound) {
+                    validStart = j;
+                }
+    
+                // Saves that an opening was found
+                openFound = true;
+                validFound = true;
+            }
+            // Find open squares in sections
+            else if (this->checkGrid(COL_OR_ROW, crNum, j, OPEN)) {
+                openSquares++;
+    
+                // Saves where opening begins
+                if (!openStart) {
+                    openStart = j;
+                }
+    
+                // Saves that opening was found
+                openFound = true;
+            }
+            // Determine if any points are too far from the spot
+            else if (this->checkGrid(COL_OR_ROW, crNum, j, INVALID) || j == maxCR - 1){
+                std::cout << "Wah" << std::endl;
+                // End position of valid squares;
+                int validEnd = validStart + validSquares;
+    
+                // Determine if points are too far from front.
+                // If the data[i] + the space in the first opening is less than the data, there are points too far away to be possible.
+                int firstOpeningSize = validStart - openStart;
+                if (validSquares + firstOpeningSize > data[i]) {
+                    int start = validStart - firstOpeningSize;
+                    int fillSize = firstOpeningSize - (data[i] - (data[i] + firstOpeningSize));
+
+                    (this->*fillSection)(crNum, start, fillSize, INVALID);
+                }
+
+                // Checks if the second gap is too large
+                int secondOpeningSize = j - validEnd;
+                if (validSquares + secondOpeningSize > data[i]) {
+                    int start = validEnd + 2;
+                    
+                    int fillSize = (validSquares + secondOpeningSize) - data[i];
+                    (this->*fillSection)(crNum, start, fillSize, INVALID);
+                }
+            }
+        }
     }
 
     return false;
+}
+
+bool PictureCrossGrid::fillUnequalSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state)) {
+    int* data = dataHeader[crNum];
+
+    // Attempt to either combine sections, or determine impossible squares
+
+    // First, determine if largest section is complete
+    int max = data[1];
+
+    // Gets largest datapoint
+    for(int i = 2; i <= data[0]; i++) {
+        if (max < data[i]) {
+            max = data[i];
+        }
+    }
+
+    // Try to find a section with the maximum valid squares. Skip if there are multiple maxes
+    int validSquares = 0;
+    for(int i = 0; i < maxCR; i++) {
+        // Increase valid count
+        if (this->checkGrid(COL_OR_ROW, crNum, i, VALID)) {
+            validSquares++;
+        }
+        // Otherwise check to see if its the correct size
+        else {
+            if (validSquares == max) {
+                (this->*fillSection)(crNum, (i - max) - 1, 1, INVALID);
+                (this->*fillSection)(crNum, i, 1, INVALID);
+            }
+            // Reset square count
+            validSquares = 0;
+        }
+    }
+    return false;
+
 }
 
 bool PictureCrossGrid::checkGrid(int COL_OR_ROW, int crNum, int index, int state) {

@@ -1,248 +1,204 @@
 #include <iostream>
-#include <limits>
-#include "../include/PictureCrossGrid.h"
 
-#define EXITCODE    0
-#define ERRORCODE   0x7FFFFFFF
+#include "Defines.h"
+#include "main.h"
+#include "Grid.h"
+#include "Solver.h"
 
-void mainMenu();
-int getIntInput(int min, int max);
-void determineUserSelection(PictureCrossGrid& grid, int userInput);
-void setRow(PictureCrossGrid& grid);
-void setColumn(PictureCrossGrid& grid);
-void getRow(PictureCrossGrid& grid);
-void getColumn(PictureCrossGrid& grid);
-void clearGrid(PictureCrossGrid& grid);
-void quickSolve(PictureCrossGrid& grid);
-void bruteSolve(PictureCrossGrid& grid);
+int main(int argc, char** argv) {
+    // Clear console
+    CON_CLEAR;
 
-static bool endProgram = false;
+    // User input for grid
+    int totalCols, totalRows;
 
-int main(void) {
-    // Gets width and heigh of grid from user
-    std::cout << "Enter the number of columns in the grid: " << std::endl;
-    int cols = getIntInput(1, 99);
-    std::cout << "Enter the number of rows in the grid: " << std::endl;
-    int rows = getIntInput(1, 99);
+    totalCols = intInput("Enter total number of columns: ", 1, 99);
+    if (totalCols == CODES::EXIT) {
+        return 0;
+    }
+
+    totalRows = intInput("Enter total number of rows:    ", 1, 99);
+    if (totalRows == CODES::EXIT) {
+        return 0;
+    }
     
-    PictureCrossGrid grid(cols, rows);
-    do {
-        mainMenu();
-        int userInput = getIntInput(1, 6);
-        determineUserSelection(grid, userInput);
-    } while (!endProgram);
+    // Create header info
+    HeaderInfo info(totalCols, totalRows);
 
-    std::cout << "Exiting..." << std::endl;
+    // Add data
+    int input;
+    do {
+        // Print menu
+        mainMenu();
+
+        // Get input
+        input = intInput("Please enter one of the options: ", 0, CODES::TOTAL - 1);
+
+        // Determine input
+        determineInput(info, input);
+    } while (input != CODES::EXIT);
+
     
     return 0;
 }
 
 void mainMenu() {
-    std::cout << "Main Menu"                                                    << std::endl;
-    std::cout << "1) Set a row"                                                 << std::endl;
-    std::cout << "2) Set a column"                                              << std::endl;
-    std::cout << "3) Get a row"                                                 << std::endl;
-    std::cout << "4) Get a column"                                              << std::endl;
-    std::cout << "5) Quick Solve"                                               << std::endl;
-    std::cout << "6) Brute Solve (can take up to " << MAX_BRUTE_RUNTIME << "s)" << std::endl;
-    std::cout << EXITCODE << ") Exit"                                           << std::endl;
+    std::cout << "Main menu\n";
+    std::cout << CODES::COLUMN  << ". Set column\n";
+    std::cout << CODES::ROW     << ". Set row\n";
+    std::cout << CODES::SOLVE   << ". Solve\n";
 }
 
-int getIntInput(int min, int max) {
+void setConsoleColour(COLOUR col) {
+    std::cout << "\033[" << col << "m";
+}
+
+void print(const HeaderInfo& info, const Grid& grid) {
+    std::cout << "\n";
+
+    // First, find largest column numbers
+    int colSize = info.col(0).size();
+    for (int col = 1; col < info.col(); col++)
+        if (colSize < info.col(col).size())
+            colSize = info.col(col).size();
+
+    // Second, find largest row numbers
+    int rowSize = info.row(0).size();
+    for (int row = 1; row < info.row(); row++)
+        if (rowSize < info.row(row).size())
+            rowSize = info.row(row).size();
+
+    // Next, print out spaced col info
+    // This has an initial spacing based on row info
+    for (int printRow = 0; printRow < colSize; printRow++) {
+        // Initial spacing
+        for (int i = 0; i < rowSize; i++)
+            printf("   ");
+        printf(" ");
+        
+        // Loop through all columns to see which should print this row
+        for (int col = 0; col < info.col(); col++) {
+            // Determine if/which info to print from column
+            auto colInfo = info.col(col);
+            int index = colInfo.size() - (colSize - printRow);
+
+            // Has proper indexing for printing
+            if (index >= 0)
+                printf("%2d ", colInfo[index]);
+            // Else add spaces for alignment
+            else
+                printf("   ");
+        }
+        printf("\n");
+    }
+    
+    // Initial spacing
+    for (int i = 0; i < rowSize; i++)
+        printf("   ");
+    // Print separator
+    printf("X");
+    for (int i = 0; i < info.col(); i++)
+        printf("---");
+    printf("\n");
+
+    // Finally, print out rows
+    for (int i = 0; i < info.row(); i++) {
+        auto headerRow = info.row(i);
+        // Initial spacing if not largest
+        for (int j = rowSize - headerRow.size(); j > 0; j--)
+            printf("   ");
+
+        // Print the row information
+        for (int j = 0; j < headerRow.size(); j++)
+            printf("%2d ", headerRow[j]);
+        
+        // Print the grid row
+        printf("|");
+        auto gridRow = grid.row(i);
+        for (int gI = 0; gI < gridRow.size(); gI++) {
+            // Works in powershell and bash for ANSI colour codes
+            std::string colour;
+            switch (gridRow[gI]) {
+                case STATE::VALID:
+                    setConsoleColour(COLOUR::GREEN);
+                    break;
+                case STATE::INVALID:
+                    setConsoleColour(COLOUR::RED);
+                    break;
+                case STATE::NONE:
+                    setConsoleColour(COLOUR::CYAN);
+                    break;
+                default:
+                    setConsoleColour(COLOUR::BLACK);
+                    break;
+            }
+            std::cout << " " << gridRow[gI] << " ";
+        }
+        setConsoleColour(COLOUR::RESET);
+        printf("\n");
+    }
+}
+
+int intInput(const std::string& text, int min, int max) {
     int input = 0;
-    std::cout << "Enter a number between " << min << " and " << max << "..." << std::endl;
+    std::cout << text;
     while (!(std::cin >> input) || (min > input || input > max)) {
-        if (input == EXITCODE) {
+        if (input == CODES::EXIT && !std::cin.fail()) {
             break;
         }
         std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cout << "Invalid entry. Enter a number between " << min << " and " << max << "..." << std::endl;
+        std::cin.ignore(0x7fffffff, '\n');
+        std::cout << "Invalid entry. Enter a number between " << min << " and " << max << ": ";
     }
     
     return input;
 }
 
-void determineUserSelection(PictureCrossGrid& grid, int userInput) {
-    switch(userInput) {
-        case 1:
-            setRow(grid);
-            break;
-        case 2:
-            setColumn(grid);
-            break;
-        case 3:
-            getRow(grid);
-            break;
-        case 4:
-            getColumn(grid);
-            break;
-        case 5:
-            quickSolve(grid);
-            break;
-        case 6:
-            bruteSolve(grid);
-            break;
-        case EXITCODE:
-            endProgram = true;
-            break;
-        default:
-            std::cout << "Not a valid option..." << std::endl;
-            break;
-    }
-}
-
-void setRow(PictureCrossGrid& grid) {
-    int userInput;
-
-    // Gets user to choose a row number to change
-    do {
-        std::cout << "Choose a row number." << std::endl;
-        userInput = getIntInput(1, grid.getRowCount());
-
-        if (userInput == EXITCODE)
-            return;
-        
-    } while (0 > userInput || userInput > grid.getRowCount());
-    // Saves users selected row
-    int selectedRow = userInput;
-
-    // Gets user to tell program how many values they will enter for the row
-    do {
-        std::cout << "Enter the number of values in the row." << std::endl;
-        userInput = getIntInput(1, 5);
-
-        if (userInput == EXITCODE)
-            return;
-        
-    } while (0 > userInput || userInput > 5);
-
-    int totalValues = userInput;
-    int* data = new int[totalValues];
-
-    // User enters the numbers for the row
-    for(int i = 0; i < totalValues; i++) {
-        std::cout << "Enter value #" << (i + 1) << " (Left to right, Up to down)." << std::endl;
-        data[i] = getIntInput(1, grid.getColumnCount());
-
-        if (userInput == EXITCODE) {
-            delete [] data;
-            return;
-        }
-    }
-
-    // Checks that valid data was entered before setting
-    int totalSpaces = 0;
-    for(int i = 0; i < totalValues; i++) {
-        totalSpaces += data[i];
-        // Accounts for spaces
-        if (i > 0)
-            totalSpaces++;
-    }
-    if (totalSpaces > grid.getColumnCount()) {
-        std::cout << "Numbers are too large. Not setting row..." << std::endl;
-        delete [] data;
-        return;
-    }
-
-    // Sets row after checking data
-    grid.setRow(selectedRow, data, totalValues);
-    std::cout << "Successfully set row!" << std::endl;
-}
-
-void setColumn(PictureCrossGrid& grid) {
-    int userInput;
-
-    // Gets user to choose a column number to change
-    do {
-        std::cout << "Choose a column number." << std::endl;
-        userInput = getIntInput(1, grid.getColumnCount());
-
-        if (userInput == EXITCODE)
-            return;
-        
-    } while (0 > userInput || userInput > grid.getColumnCount());
-    // Saves users selected column
-    int selectedColumn = userInput;
-
-    // Gets user to tell program how many values they will enter for the column
-    do {
-        std::cout << "Enter the number of values in the column." << std::endl;
-        userInput = getIntInput(1, 5);
-
-        if (userInput == EXITCODE)
-            return;
-        
-    } while (0 > userInput || userInput > 5);
-
-    int totalValues = userInput;
-    int* data = new int[totalValues];
-
-    // User enters the numbers for the row
-    for(int i = 0; i < totalValues; i++) {
-        std::cout << "Enter value #" << (i + 1) << " (Left to right, Up to down)." << std::endl;
-        data[i] = getIntInput(1, grid.getRowCount());
-
-        if (userInput == EXITCODE) {
-            delete [] data;
-            return;
-        }
-    }
-
-    // Checks that valid data was entered before setting
-    int totalSpaces = 0;
-    for(int i = 0; i < totalValues; i++) {
-        totalSpaces += data[i];
-        // Accounts for spaces
-        if (i > 0)
-            totalSpaces++;
-    }
-    if (totalSpaces > grid.getRowCount()) {
-        std::cout << "Numbers are too large. Not setting column..." << std::endl;
-        delete [] data;
-        return;
-    }
-
-    // Sets column after checking data
-    grid.setColumn(selectedColumn, data, totalValues);
-    std::cout << "Successfully set column!" << std::endl;
-}
-
-void getRow(PictureCrossGrid& grid) {
-    std::cout << "Enter a row number: " << std::endl;
-    int input = getIntInput(1, grid.getRowCount());
+Array<int> multiIntInput(const std::string& text, int total, int min, int max) {
+    Array<int> vals(total);
     
-    int* data = grid.getRow(input);
-    if (data == NULL) {
-        return;
+    // Loop for input
+    for (int i = 0; i < total; i++) {
+        // TODO - User can enter 0
+        vals[i] = intInput(text, min, max);
     }
-
-    for(int i = 1; i <= data[0]; i++) {
-        std::cout << data[i] << " ";
-    }
-    std::cout << std::endl;
+    
+    return vals;
 }
 
-void getColumn(PictureCrossGrid& grid) {
-    std::cout << "Enter a column number: " << std::endl;
-    int input = getIntInput(1, grid.getColumnCount());
-
-    int* data = grid.getColumn(input);
-    if (data == NULL) {
-        return;
+void determineInput(HeaderInfo& info, int input) {
+    switch (input) {
+        case CODES::COLUMN: {
+            int col = intInput("Select a column: ", 1, info.col());
+            int size = intInput("Enter the number of values: ", 1, info.row());
+            auto vals = multiIntInput("Enter column info: ", size, 1, info.row());
+            info.setCol(col, vals);
+            break;
+        }
+        case CODES::ROW: {
+            int row = intInput("Select a row: ", 1, info.row());
+            int size = intInput("Enter the number of values: ", 1, info.col());
+            auto vals = multiIntInput("Enter row info: ", size, 1, info.col());
+            info.setRow(row, vals);
+            break;
+        }
+        case CODES::SOLVE: {
+            // Solve
+            Solver solver(info);
+            Grid grid = solver.solve();
+            
+            // Output
+            print(info, grid);
+            break;
+        }
+        case CODES::EXIT: {
+            std::cout << "Exiting\n";
+            exit(EXIT_SUCCESS);
+            break;
+        }
+        default:
+            std::cout << "Unimplemented item selected\n";
+            break;
     }
-
-    for(int i = 1; i <= data[0]; i++) {
-        std::cout << data[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
-void quickSolve(PictureCrossGrid& grid) {
-    grid.quickSolve();
-}
-
-void bruteSolve(PictureCrossGrid& grid) {
-    grid.bruteSolve();
 }
 

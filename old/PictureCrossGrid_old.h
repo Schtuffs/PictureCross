@@ -13,8 +13,8 @@
 // CR - column/row. Used any time for variables that hold data for either columns or rows
 
 #define DEFAULT_SIZE        15
-#define MAX_QUICK_RUNTIME   2.0
-#define MAX_BRUTE_RUNTIME   600000.0
+#define MAX_QUICK_RUNTIME   1.0
+#define MAX_BRUTE_RUNTIME   600.0
 #define MAX_DEPTH           1
 #define COL                 1
 #define ROW                 2
@@ -100,6 +100,9 @@ private:
     bool checkEdges(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state));
     bool checkSubSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state));
     bool fillEqualSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state));
+    int fillEqualSectionsValid(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state));
+    bool fillEqualSectionsInvalid(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state));
+    bool fillUnequalSections(int COL_OR_ROW, int crNum, int **dataHeader, int maxCR, bool *completeHeader, void (PictureCrossGrid::*fillSection)(int crNum, int startIndex, int totalSquares, int state));
     bool checkGrid(int COL_OR_ROW, int crNum, int index, int state);
     
     void fillColumnSection(int column, int start, int end, int state);
@@ -125,7 +128,7 @@ public:
     int* getColumn(int column);
 
     // Allows user to input/retrieve row information
-    
+
     void setRow(int rowNumber, int* headerInfo, int size);
     int getRowCount();
     int* getRow(int row);
