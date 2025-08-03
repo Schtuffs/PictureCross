@@ -1,4 +1,4 @@
-#include "../include/PictureCrossGrid_old.h"
+#include "PictureCrossGrid_old.h"
 
 PictureCrossGrid::PictureCrossGrid(int columns, int rows) {
     if (columns <= 0 || rows <= 0) {
@@ -146,7 +146,6 @@ void PictureCrossGrid::init(int crNum, int **dataHeader, int maxCR, bool *comple
         completeHeader[crNum] = true;
         return;
     }
-
 
     // Data doesn't fully fill section
 

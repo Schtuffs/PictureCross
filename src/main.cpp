@@ -6,6 +6,11 @@
 #include "Solver.h"
 
 int main(int argc, char** argv) {
+    // Set to UTF-8 on Windows, instead of including windows.h
+#ifdef _WIN32
+    std::system("chcp 65001");
+#endif
+    
     // Clear console
     CON_CLEAR;
 
@@ -47,6 +52,7 @@ void mainMenu() {
     std::cout << CODES::COLUMN  << ". Set column\n";
     std::cout << CODES::ROW     << ". Set row\n";
     std::cout << CODES::SOLVE   << ". Solve\n";
+    std::cout << CODES::EXIT   << ". Exit\n";
 }
 
 void setConsoleColour(COLOUR col) {
@@ -117,22 +123,24 @@ void print(const HeaderInfo& info, const Grid& grid) {
         auto gridRow = grid.row(i);
         for (int gI = 0; gI < gridRow.size(); gI++) {
             // Works in powershell and bash for ANSI colour codes
-            std::string colour;
             switch (gridRow[gI]) {
                 case STATE::VALID:
                     setConsoleColour(COLOUR::GREEN);
+                    std::cout << " ☐ ";
                     break;
-                case STATE::INVALID:
+                    case STATE::INVALID:
                     setConsoleColour(COLOUR::RED);
+                    std::cout << " ☒ ";
                     break;
-                case STATE::NONE:
+                    case STATE::NONE:
                     setConsoleColour(COLOUR::CYAN);
+                    std::cout << " ? ";
                     break;
                 default:
-                    setConsoleColour(COLOUR::BLACK);
+                    setConsoleColour(COLOUR::MAGENTA);
+                    std::cout << "ERR";
                     break;
             }
-            std::cout << " " << gridRow[gI] << " ";
         }
         setConsoleColour(COLOUR::RESET);
         printf("\n");
@@ -189,6 +197,7 @@ void determineInput(HeaderInfo& info, int input) {
             
             // Output
             print(info, grid);
+            std::cout << "Total runtime: " << solver.runtime() << "s\n";
             break;
         }
         case CODES::EXIT: {

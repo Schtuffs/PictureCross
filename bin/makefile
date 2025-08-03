@@ -6,7 +6,7 @@ SRC		 = ../src
 INCLUDE	 = ../include
 LIB		 = ../lib
 
-FLAGS	 = -std=c++20 -I$(INCLUDE) -L$(LIB)
+FLAGS	 = -std=c++20 -I$(INCLUDE) -L$(LIB) -O3
 CXXFLAGS = -c -Wall $(FLAGS)
 LDFLAGS	 = $(FLAGS) -o
 

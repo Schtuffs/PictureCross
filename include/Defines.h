@@ -11,5 +11,10 @@
 // Display colours
 enum COLOUR { RESET, BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE };
 
+// Menu codes
 enum CODES { EXIT, COLUMN, ROW, SOLVE, TOTAL, ERROR };
+
+// Others
+
+constexpr double MAX_RUNTIME   = 1.0;
 

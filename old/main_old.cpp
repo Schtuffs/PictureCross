@@ -1,5 +1,5 @@
 #include <iostream>
-#include "../include/PictureCrossGrid_old.h"
+#include "PictureCrossGrid_old.h"
 
 #define EXITCODE    0
 #define ERRORCODE   0x7FFFFFFF
