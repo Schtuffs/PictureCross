@@ -2,31 +2,44 @@
 
 #include "Grid.h"
 #include "HeaderInfo.h"
+#include "Line.h"
 
 class Solver {
 private:
     enum TYPE { COL, ROW };
     HeaderInfo mInfo;
     Grid mGrid;
-    int mSolvedLines;
+    char mSolvedLines, mColCount, mRowCount, mColSize, mRowSize;
     double mRuntime;
 
     // ----- Read -----
 
     bool isComplete();
+    bool isComplete(const Line& line) const noexcept;
+
+    // ----- Gathering -----
+
+    // Gets the total open areas for the section
+    inline int lineSections(const Line& line) const noexcept;
 
     // ----- Update -----
 
     // Fills in specified area
     void fill(TYPE t, int line, int start, int spaces, STATE state);
 
+    // ----- Initializing -----
+
     // Fills in the beginning header data
     void initGrid();
     // Fills in the data when initializing grid with complete line
-    inline void initCompleteLine(TYPE type, int lineNum, const Array<int>& line) noexcept;
+    inline void initCompleteLine(TYPE type, int lineNum, const Line& line) noexcept;
     // Fills in as much data as possible when initializing grid with incomplete line
-    inline void initIncompleteLine(TYPE type, int lineNum, int remain, const Array<int>& line) noexcept;
+    inline void initIncompleteLine(TYPE type, int lineNum, int remain, const Line& line) noexcept;
 
+    // ----- Looping -----
+
+    // Checks a line and performs necessary logic to complete it more
+    void check(TYPE type, const Line& line);
 public:
     Solver(const HeaderInfo& info);
 

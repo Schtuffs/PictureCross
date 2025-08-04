@@ -4,7 +4,7 @@
 
 // ----- Creation ----- Destruction -----
 
-Solver::Solver(const HeaderInfo& info) : mInfo(info), mGrid(info.col(), info.row()), mSolvedLines(0) {}
+Solver::Solver(const HeaderInfo& info) : mInfo(info), mGrid(info.col(), info.row()), mSolvedLines(0), mColCount(info.col()), mRowCount(info.row()), mColSize(mInfo.row()), mRowSize(mInfo.col()) {}
 Solver::~Solver() {}
 
 
@@ -20,7 +20,15 @@ double Solver::runtime() const noexcept {
 // ----- Read ----- Private -----
 
 bool Solver::isComplete() {
-    return (this->mSolvedLines == (this->mInfo.col() + this->mInfo.row()));
+    return (this->mSolvedLines == (this->mColSize + this->mRowSize));
+}
+
+bool Solver::isComplete(const Line& line) const noexcept {
+    return true;
+}
+
+inline int Solver::lineSections(const Line& line) const noexcept {
+    return line.size();
 }
 
 
@@ -36,12 +44,12 @@ const Grid& Solver::solve() {
     this->mRuntime = 0;
     while (!this->isComplete() && this->mRuntime < MAX_RUNTIME) {
         // Check columns
-        for (int i = 0; i < this->mInfo.col(); i++) {
-            
+        for (int i = 0; i < this->mColCount; i++) {
+            this->check(COL, this->mGrid.col(i));
         }
 
         // Check rows
-        for (int i = 0; i < this->mInfo.row(); i++) {
+        for (int i = 0; i < this->mRowCount; i++) {
 
         }
 
@@ -52,64 +60,29 @@ const Grid& Solver::solve() {
     return this->mGrid;
 }
 
+
+
 // ----- Update ----- Private -----
 
+// ----- Initializing -----
+
 // Calculates the remaining number of squares in the initial header data
-inline int calcRemaining(int totalLineLength, int lineSize, const Array<int>& line) noexcept {
+inline int calcRemaining(const Line& line) noexcept {
     // Takes total cols/rows, accounts for extra spaces between, and calculates total amount of known data
-    int remove = totalLineLength - (lineSize - 1);
-    for (int i = 0; i < lineSize; i++) {
-        remove -= line[i];
+    int remove = line.size() - (line.head().size() - 1);
+    for (int i = 0; i < line.size(); i++) {
+        remove -= line.head()[i];
     }
     return remove;
-}
-
-// Fill in the completed line
-inline void Solver::initCompleteLine(TYPE type, int lineNum, const Array<int>& line) noexcept {
-    // Loop through all data points and add them to grid
-    int startIndex = 0;
-    for(int i = 0; i < line.size(); i++) {
-        // Sets the valid data
-        this->fill(type, lineNum, startIndex, line[i], STATE::VALID);
-
-        // Moves the start index for the invalid square
-        startIndex += line[i];
-
-        // Adds the invalid square
-        this->fill(type, lineNum, startIndex, 1, STATE::INVALID);
-
-        // Final update for after invalid square
-        startIndex++;
-    }
-}
-
-inline void Solver::initIncompleteLine(TYPE type, int lineNum, int remain, const Array<int>& line) noexcept {
-    // Stores index for filling data
-    int startIndex = 0;
-    for(int i = 0; i < line.size(); i++) {
-        // Number of datapoints to fill
-        int valueToFill = line[i];
-
-        // Removes extra points for proper resizing
-        valueToFill -= remain;
-
-        // Fill in section data
-        this->fill(type, lineNum, startIndex + remain, valueToFill, STATE::VALID);
-
-        // Start index increases by the data value and extra space
-        startIndex += line[i] + 1;
-    }
 }
 
 void Solver::initGrid() {
     // Col data
     {
         // Loop through cols
-        int colTotal = this->mInfo.col();
-        int colSize = this->mInfo.row();
-        for (int lineNum = 0; lineNum < colTotal; lineNum++) {
-            auto curCol = this->mInfo.col(lineNum);
-            int remain = calcRemaining(colSize, curCol.size(), this->mInfo.col(lineNum));
+        for (int lineNum = 0; lineNum < this->mColCount; lineNum++) {
+            auto curCol = this->mGrid.col(lineNum);
+            int remain = calcRemaining(this->mGrid.col(lineNum));
 
             // All squares should be filled
             if (remain == 0) {
@@ -128,11 +101,9 @@ void Solver::initGrid() {
     // Row data
     {
         // Loop through cols
-        int rowTotal = this->mInfo.row();
-        int rowSize = this->mInfo.col();
-        for (int lineNum = 0; lineNum < rowTotal; lineNum++) {
-            auto curRow = this->mInfo.row(lineNum);
-            int remain = calcRemaining(rowSize, curRow.size(), this->mInfo.row(lineNum));
+        for (int lineNum = 0; lineNum < this->mRowCount; lineNum++) {
+            auto curRow = this->mGrid.row(lineNum);
+            int remain = calcRemaining(this->mGrid.row(lineNum));
     
             // All squares should be filled
             if (remain == 0) {
@@ -149,6 +120,60 @@ void Solver::initGrid() {
         }
     }
 }
+
+inline void Solver::initCompleteLine(TYPE type, int lineNum, const Line& line) noexcept {
+    // Loop through all data points and add them to grid
+    int startIndex = 0;
+    for(int i = 0; i < line.size(); i++) {
+        // Sets the valid data
+        this->fill(type, lineNum, startIndex, line.head()[i], STATE::VALID);
+
+        // Moves the start index for the invalid square
+        startIndex += line.head()[i];
+
+        // Adds the invalid square
+        this->fill(type, lineNum, startIndex, 1, STATE::INVALID);
+
+        // Final update for after invalid square
+        startIndex++;
+    }
+}
+
+inline void Solver::initIncompleteLine(TYPE type, int lineNum, int remain, const Line& line) noexcept {
+    // Stores index for filling data
+    int startIndex = 0;
+    for(int i = 0; i < line.size(); i++) {
+        // Number of datapoints to fill
+        int valueToFill = line.head()[i];
+
+        // Removes extra points for proper resizing
+        valueToFill -= remain;
+
+        // Fill in section data
+        this->fill(type, lineNum, startIndex + remain, valueToFill, STATE::VALID);
+
+        // Start index increases by the data value and extra space
+        startIndex += line.head()[i] + 1;
+    }
+}
+
+// ----- Looping -----
+
+void Solver::check(TYPE type, const Line& line) {
+    // See if complete
+    if (this->isComplete(line)) {
+        return;
+    }
+
+    // Check sections
+    int sections = this->lineSections((type == COL ? this->mGrid.col(0) : this->mGrid.row(0)));
+    if (sections == line.size()) {
+        // Split into smaller lines
+
+    }
+}
+
+// ----- Other -----
 
 void Solver::fill(TYPE t, int line, int start, int spaces, STATE state) {
     if (t == COL) {
