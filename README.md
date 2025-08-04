@@ -9,5 +9,5 @@
 
 ## Entering data
  The main menu will allow you to enter either a column or a rows information. 
- Once you are satisfied with the entered data, simply choose a solve strategy (quick recommended).
+ Once you are satisfied with the entered data, simply choose the solve option.
 
