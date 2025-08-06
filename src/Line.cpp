@@ -19,19 +19,19 @@ Line::~Line() {}
 
 // ----- Read -----
 
-inline int Line::size() const noexcept {
+int Line::size() const noexcept {
     return this->mSize;
 }
 
-inline const Array<int>& Line::head() const noexcept {
+const Array<int>& Line::head() const noexcept {
     return this->mHead;
 }
 
-inline int Line::sections() const noexcept {
+int Line::sections() const noexcept {
     return this->mSections;
 }
 
-inline STATE Line::get(int i) const noexcept {
+STATE Line::get(int i) const noexcept {
     // Check index
     if (0 > i || i > this->mSize) {
         return STATE::UNKNOWN;
@@ -47,7 +47,7 @@ STATE Line::operator[](int index) {
 
 // ----- Update -----
 
-inline bool Line::set(int index, STATE state) noexcept {
+bool Line::set(int index, STATE state) noexcept {
     // Check index
     if (0 > index || index >= this->mSize) {
         return false;
@@ -58,7 +58,7 @@ inline bool Line::set(int index, STATE state) noexcept {
     return true;
 }
 
-inline void Line::head(const Array<int>& head) noexcept {
+void Line::head(const Array<int>& head) noexcept {
     this->mHead = head;
 }
 
