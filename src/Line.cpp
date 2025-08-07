@@ -1,16 +1,18 @@
 #include "Line.h"
 
 // ----- Creation ----- Destruction -----
-Line::Line() : mSize(0), mSections(0), mHead(0), mCells(mSize) {}
-Line::Line(int size) : mSize(size), mSections(0), mHead(0), mCells(mSize) {
-    if (this->mSize < 0) {
-        this->mSize = 0;
+Line::Line() : mSize(1), mSections(1), mHead(1), mCells(mSize) {}
+Line::Line(int size) : mSize(size), mSections(1), mHead(1) {
+    if (this->mSize < 1) {
+        this->mSize = 1;
     }
+    this->mCells = Array<STATE>(mSize);
 }
-Line::Line(int size, const Array<int>& head) : mSize(size), mSections(head.size()), mHead(head), mCells(mSize) {
-    if (this->mSize < 0) {
-        this->mSize = 0;
+Line::Line(int size, const Array<int>& head) : mSize(size), mSections(head.size()), mHead(head) {
+    if (this->mSize < 1) {
+        this->mSize = 1;
     }
+    this->mCells = Array<STATE>(mSize);
 }
 
 Line::~Line() {}

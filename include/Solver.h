@@ -3,10 +3,10 @@
 #include "Grid.h"
 #include "HeaderInfo.h"
 #include "Line.h"
+#include "Defines.h"
 
 class Solver {
 private:
-    enum TYPE { COL, ROW };
     HeaderInfo mInfo;
     Grid mGrid;
     char mSolvedLines, mColCount, mRowCount, mColSize, mRowSize;

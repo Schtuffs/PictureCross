@@ -24,6 +24,11 @@ public:
     // Returns the number of rows
     int row() const noexcept;
 
+    // Returns all column data
+    const Array<Array<int>>& allCols() const noexcept;
+    // Returns all row data
+    const Array<Array<int>>& allRows() const noexcept;
+
     // Returns specified column data
     // Returns empty vector if out of bounds
     const Array<int>& col(int index) const noexcept;

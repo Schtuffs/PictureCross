@@ -5,8 +5,8 @@
 template <typename T>
 class Array {
 private:
+    unsigned int mSize;
     T* mData;
-    int mSize;
 
 public:
     // Always creates at least one space

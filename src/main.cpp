@@ -18,12 +18,12 @@ int main(int argc, char** argv) {
     int totalCols, totalRows;
 
     totalCols = intInput("Enter total number of columns: ", 1, 99);
-    if (totalCols == CODES::EXIT) {
+    if (totalCols ==(int)CODES::EXIT) {
         return 0;
     }
 
     totalRows = intInput("Enter total number of rows:    ", 1, 99);
-    if (totalRows == CODES::EXIT) {
+    if (totalRows ==(int)CODES::EXIT) {
         return 0;
     }
     
@@ -37,11 +37,11 @@ int main(int argc, char** argv) {
         mainMenu();
 
         // Get input
-        input = intInput("Please enter one of the options: ", 0, CODES::TOTAL - 1);
+        input = intInput("Please enter one of the options: ", 0,(int)CODES::TOTAL - 1);
 
         // Determine input
         determineInput(info, input);
-    } while (input != CODES::EXIT);
+    } while (input !=(int)CODES::EXIT);
 
     
     return 0;
@@ -49,14 +49,14 @@ int main(int argc, char** argv) {
 
 void mainMenu() {
     std::cout << "Main menu\n";
-    std::cout << CODES::COLUMN  << ". Set column\n";
-    std::cout << CODES::ROW     << ". Set row\n";
-    std::cout << CODES::SOLVE   << ". Solve\n";
-    std::cout << CODES::EXIT   << ". Exit\n";
+    std::cout <<(int)CODES::COLUMN  << ". Set column\n";
+    std::cout <<(int)CODES::ROW     << ". Set row\n";
+    std::cout <<(int)CODES::SOLVE   << ". Solve\n";
+    std::cout <<(int)CODES::EXIT   << ". Exit\n";
 }
 
 void setConsoleColour(COLOUR col) {
-    std::cout << "\033[" << col << "m";
+    std::cout << "\033[" << (int)col << "m";
 }
 
 void print(const HeaderInfo& info, const Grid& grid) {
@@ -128,11 +128,11 @@ void print(const HeaderInfo& info, const Grid& grid) {
                     setConsoleColour(COLOUR::GREEN);
                     std::cout << " ☐ ";
                     break;
-                    case STATE::INVALID:
+                case STATE::INVALID:
                     setConsoleColour(COLOUR::RED);
                     std::cout << " ☒ ";
                     break;
-                    case STATE::NONE:
+                case STATE::NONE:
                     setConsoleColour(COLOUR::CYAN);
                     std::cout << " ? ";
                     break;
@@ -151,7 +151,7 @@ int intInput(const std::string& text, int min, int max) {
     int input = 0;
     std::cout << text;
     while (!(std::cin >> input) || (min > input || input > max)) {
-        if (input == CODES::EXIT && !std::cin.fail()) {
+        if (input ==(int)CODES::EXIT && !std::cin.fail()) {
             break;
         }
         std::cin.clear();
@@ -176,21 +176,21 @@ Array<int> multiIntInput(const std::string& text, int total, int min, int max) {
 
 void determineInput(HeaderInfo& info, int input) {
     switch (input) {
-        case CODES::COLUMN: {
+        case(int)CODES::COLUMN: {
             int col = intInput("Select a column: ", 1, info.col());
             int size = intInput("Enter the number of values: ", 1, info.row());
             auto vals = multiIntInput("Enter column info: ", size, 1, info.row());
             info.setCol(col, vals);
             break;
         }
-        case CODES::ROW: {
+        case(int)CODES::ROW: {
             int row = intInput("Select a row: ", 1, info.row());
             int size = intInput("Enter the number of values: ", 1, info.col());
             auto vals = multiIntInput("Enter row info: ", size, 1, info.col());
             info.setRow(row, vals);
             break;
         }
-        case CODES::SOLVE: {
+        case(int)CODES::SOLVE: {
             // Solve
             Solver solver(info);
             Grid grid = solver.solve();
@@ -200,7 +200,7 @@ void determineInput(HeaderInfo& info, int input) {
             std::cout << "Total runtime: " << solver.runtime() << "s\n";
             break;
         }
-        case CODES::EXIT: {
+        case(int)CODES::EXIT: {
             std::cout << "Exiting\n";
             exit(EXIT_SUCCESS);
             break;

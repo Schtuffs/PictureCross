@@ -24,6 +24,14 @@ int HeaderInfo::row() const noexcept {
     return this->mDataRow.size();
 }
 
+const Array<Array<int>>& HeaderInfo::allCols() const noexcept {
+    return this->mDataCol;
+}
+
+const Array<Array<int>>& HeaderInfo::allRows() const noexcept {
+    return this->mDataRow;
+}
+
 const Array<int>& HeaderInfo::col(int index) const noexcept {
     if (index < 0 || index > (int)this->mDataCol.size()) {
         return this->mDataCol[0];

@@ -11,16 +11,16 @@ private:
     Array<Line> mCols, mRows;
 
 public:
-    Grid(int cols, int rows);
+    Grid(const Array<Array<int>>& colInfo, const Array<Array<int>>& rowInfo);
     ~Grid();
 
     // Gets specified column from grid
     // Returns first column if out of bounds
-    const Line col(int index) const noexcept;
+    const Line& col(int index) const noexcept;
 
     // Gets specified row from grid
     // Returns first row if out of bounds
-    const Line row(int index) const noexcept;
+    const Line& row(int index) const noexcept;
 
     // Gets the state of the specified cell
     STATE get(int col, int row) const noexcept;

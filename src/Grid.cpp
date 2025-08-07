@@ -4,9 +4,19 @@
 
 // ----- Creation ----- Destruction -----
 
-Grid::Grid(int cols, int rows) : mCells(rows), mCols(cols), mRows(rows) {
-    for (int i = 0; i < rows; i++) {
-        this->mCells[i] = Array<STATE>(cols);
+Grid::Grid(const Array<Array<int>>& colInfo, const Array<Array<int>>& rowInfo) : mCells(rowInfo.size()), mCols(colInfo.size()), mRows(rowInfo.size()) {
+    for (int i = 0; i < this->mRows.size(); i++) {
+        this->mCells[i] = Array<STATE>(this->mCols.size());
+    }
+
+    // Add header data
+    for (int i = 0; i < this->mCols.size(); i++) {
+        this->mCols[i] = Line(this->mRows.size());
+        this->mCols[i].head(colInfo[i]);
+    }
+    for (int i = 0; i < this->mRows.size(); i++) {
+        this->mRows[i] = Line(this->mCols.size());
+        this->mRows[i].head(rowInfo[i]);
     }
 }
 
@@ -16,17 +26,17 @@ Grid::~Grid() {}
 
 // ----- Read -----
 
-const Line Grid::col(int index) const noexcept {
+const Line& Grid::col(int index) const noexcept {
     if (0 > index || index > this->mCols.size()) {
-        return Line();
+        return this->mCols[0];
     }
 
     return this->mCols[index];
 }
 
-const Line Grid::row(int index) const noexcept {
+const Line& Grid::row(int index) const noexcept {
     if (0 > index || index > (int)this->mCells.size()) {
-        return Line();
+        return this->mRows[0];
     }
     return this->mRows[index];
 }
