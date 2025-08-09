@@ -43,10 +43,10 @@ const Line& Grid::row(int index) const noexcept {
 
 STATE Grid::get(int col, int row) const noexcept {
     if (0 > col || col > this->mCells[0].size()) {
-        return UNKNOWN;
+        return STATE::UNKNOWN;
     }
     if (0 > row || row > this->mCells.size()) {
-        return UNKNOWN;
+        return STATE::UNKNOWN;
     }
     return this->mCells[row][col];
 }
@@ -75,7 +75,24 @@ std::ostream& operator<<(std::ostream& cout, const Grid& grid) {
     std::cout << "\n";
     for (int row = 0; row < (int)grid.mRows.size(); row++) {
         for (int col = 0; col < (int)grid.mCols[0].size(); col++) {
-            cout << grid.get(col, row) << " ";
+            switch (grid.get(col, row)) {
+            case STATE::VALID:
+                cout << "V";
+                break;
+            case STATE::INVALID:
+                cout << "I";
+                break;
+            case STATE::NONE:
+                cout << "N";
+                break;
+            default:
+                cout << "?";
+                break;
+            }
+
+            if (col != grid.row(0).size() - 1) {
+                cout << ", ";
+            }
         }
         cout << "\n";
     }

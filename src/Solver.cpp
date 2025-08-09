@@ -24,11 +24,60 @@ bool Solver::isComplete() {
 }
 
 bool Solver::isComplete(const Line& line) const noexcept {
-    return true;
+    return false;
 }
 
 inline int Solver::lineSections(const Line& line) const noexcept {
-    return line.size();
+    // Start with first index
+    bool inSection = (line[0] == STATE::INVALID ? false : true);
+
+    // Loop through rest of line
+    int sections = (inSection ? 1 : 0);
+    for (int i = 1; i < line.size(); i++) {
+        // Find end section
+        if (inSection && line[i] == STATE::INVALID) {
+            inSection = false;
+        }
+        // Find new section
+        if (!inSection && line[i] != STATE::INVALID) {
+            inSection = true;
+            sections++;
+        }
+    }
+
+    return sections;
+}
+
+Array<Line> Solver::lineSplit(const Line& line) const noexcept {
+    // Create the array
+    Array<Line> lines(line.sections());
+
+    // Update the array with sublines
+    int searchIndex = 0, start = 0;
+    for (int i = 0; i < lines.size(); i++) {
+        // Find the size of the line
+        int size = 0;
+        while (searchIndex < line.size()) {
+            if (line[searchIndex++] != STATE::INVALID) {
+                size++;
+            }
+            else {
+                // Ensure line has a size, otherwise started on bad square
+                if (size == 0) {
+                    start = searchIndex;
+                    continue;
+                }
+                break;
+            }
+        }
+        Array<int> head(1);
+        head[0] = line.head()[i];
+        lines[i] = Line(size, head);
+        lines[i].start(searchIndex - size - 1);
+        start = searchIndex;
+    }
+
+    return lines;
 }
 
 
@@ -36,6 +85,8 @@ inline int Solver::lineSections(const Line& line) const noexcept {
 // ----- Update -----
 
 const Grid& Solver::solve() {
+    std::cout << "\nBeginning solve...\n";
+    
     // Begin solve time
     clock_t begin = clock();
     this->mRuntime = 0;
@@ -47,13 +98,15 @@ const Grid& Solver::solve() {
     while (!this->isComplete() && this->mRuntime < MAX_RUNTIME) {
         // Check columns
         for (int i = 0; i < this->mColCount; i++) {
-            this->check(TYPE::COL, this->mGrid.col(i));
+            break;
+            this->check(TYPE::COL, i, this->mGrid.col(i));
         }
-
+        
         // Check rows
         for (int i = 0; i < this->mRowCount; i++) {
-
+            this->check(TYPE::ROW, i, this->mGrid.row(i));
         }
+        break;
 
         // Runtime check
         clock_t current = clock();
@@ -79,12 +132,18 @@ inline int calcRemaining(const Line& line) noexcept {
     return remove;
 }
 
-void Solver::initGrid() {
+void Solver::initGrid() noexcept {
     // Col data
     {
         // Loop through cols
         for (int lineNum = 0; lineNum < this->mColCount; lineNum++) {
             auto curCol = this->mGrid.col(lineNum);
+
+            // Check if column is empty
+            if (curCol.head()[0] == 0) {
+                this->fill(TYPE::COL, lineNum, 0, curCol.size(), STATE::INVALID);
+            }
+            
             int remain = calcRemaining(this->mGrid.col(lineNum));
             
             // All squares should be filled
@@ -106,6 +165,12 @@ void Solver::initGrid() {
         // Loop through cols
         for (int lineNum = 0; lineNum < this->mRowCount; lineNum++) {
             auto curRow = this->mGrid.row(lineNum);
+
+            // Check if column is empty
+            if (curRow.head()[0] == 0) {
+                this->fill(TYPE::ROW, lineNum, 0, curRow.size(), STATE::INVALID);
+            }
+
             int remain = calcRemaining(this->mGrid.row(lineNum));
             
             // All squares should be filled
@@ -162,23 +227,61 @@ inline void Solver::initIncompleteLine(TYPE type, int lineNum, int remain, const
 
 // ----- Looping -----
 
-void Solver::check(TYPE type, const Line& line) {
+void Solver::check(TYPE type, int lineNum, const Line& line) noexcept {
     // See if complete
     if (this->isComplete(line)) {
         return;
     }
 
     // Check sections
-    int sections = this->lineSections((type == TYPE::COL ? this->mGrid.col(0) : this->mGrid.row(0)));
-    if (sections == line.size()) {
+    int sections = this->lineSections((type == TYPE::COL ? this->mGrid.col(lineNum): this->mGrid.row(lineNum)));
+    if (sections == line.sections()) {
         // Split into smaller lines
+        Array<Line> split = lineSplit(line);
+        for (int i = 0; i < split.size(); i++) {
+            this->lineSectionSolve(type, lineNum, split[i]);
+        }
+    }
+}
 
+void Solver::lineSectionSolve(TYPE type, int lineNum, const Line& line) noexcept {
+    // Check if section complete
+    int remain = calcRemaining(line);
+    if (remain == 0) {
+        this->completeLineSection(type, lineNum, line);
+        this->mSolvedLines++;
+    }
+    else {
+        this->incompleteLineSection(type, lineNum, remain, line);
+    }
+}
+
+void Solver::completeLineSection(TYPE type, int lineNum, const Line& line) noexcept {
+    // Sets the valid data
+    this->fill(type, lineNum, line.start(), line.size(), STATE::VALID);
+}
+
+void Solver::incompleteLineSection(TYPE type, int lineNum, int remain, const Line& line) noexcept {
+    // Stores index for filling data
+    int startIndex = 0;
+    for(int i = 0; i < line.size(); i++) {
+        // Number of datapoints to fill
+        int valueToFill = line.head()[i];
+
+        // Removes extra points for proper resizing
+        valueToFill -= remain;
+
+        // Fill in section data
+        this->fill(type, lineNum, startIndex + remain, valueToFill, STATE::VALID);
+
+        // Start index increases by the data value and extra space
+        startIndex += line.head()[i] + 1;
     }
 }
 
 // ----- Other -----
 
-void Solver::fill(TYPE t, int line, int start, int spaces, STATE state) {
+void Solver::fill(TYPE t, int line, int start, int spaces, STATE state) noexcept {
     if (t == TYPE::COL) {
         // Ensures data begins within bounds of the array
         if (start >= this->mInfo.row()) {

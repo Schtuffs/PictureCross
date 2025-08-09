@@ -1,14 +1,14 @@
 #include "Line.h"
 
 // ----- Creation ----- Destruction -----
-Line::Line() : mSize(1), mSections(1), mHead(1), mCells(mSize) {}
-Line::Line(int size) : mSize(size), mSections(1), mHead(1) {
+Line::Line() : mSize(1), mStartIndex(0), mHead(1), mCells(mSize) {}
+Line::Line(int size) : mSize(size), mStartIndex(0), mHead(1) {
     if (this->mSize < 1) {
         this->mSize = 1;
     }
     this->mCells = Array<STATE>(mSize);
 }
-Line::Line(int size, const Array<int>& head) : mSize(size), mSections(head.size()), mHead(head) {
+Line::Line(int size, const Array<int>& head) : mSize(size), mStartIndex(0), mHead(head) {
     if (this->mSize < 1) {
         this->mSize = 1;
     }
@@ -30,7 +30,7 @@ const Array<int>& Line::head() const noexcept {
 }
 
 int Line::sections() const noexcept {
-    return this->mSections;
+    return this->mHead.size();
 }
 
 STATE Line::get(int i) const noexcept {
@@ -41,8 +41,38 @@ STATE Line::get(int i) const noexcept {
     return this->mCells[i];
 }
 
-STATE Line::operator[](int index) {
+int Line::start() const noexcept {
+    return this->mStartIndex;
+}
+
+STATE Line::operator[](int index) const noexcept {
     return this->mCells[index];
+}
+
+std::ostream& operator<<(std::ostream& cout, const Line& line) {
+    cout << "{ ";
+    for (int i = 0; i < line.size(); i++) {
+        switch (line[i]) {
+        case STATE::VALID:
+            cout << "V";
+            break;
+        case STATE::INVALID:
+            cout << "I";
+            break;
+        case STATE::NONE:
+            cout << "N";
+            break;
+        default:
+            cout << "?";
+            break;
+        }
+
+        if (i != line.size() - 1) {
+            cout << ", ";
+        }
+    }
+    cout << " }";
+    return cout;
 }
 
 
@@ -62,5 +92,9 @@ bool Line::set(int index, STATE state) noexcept {
 
 void Line::head(const Array<int>& head) noexcept {
     this->mHead = head;
+}
+
+void Line::start(int index) noexcept {
+    this->mStartIndex = index;
 }
 

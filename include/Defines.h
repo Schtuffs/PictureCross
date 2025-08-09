@@ -14,8 +14,10 @@ enum class COLOUR { RESET, BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, 
 // Menu codes
 enum class CODES { EXIT, COLUMN, ROW, SOLVE, TOTAL, ERROR };
 
-// Others
+// Tile states
+enum class STATE { NONE, VALID, INVALID, UNKNOWN };
 
+// Line type
 enum class TYPE { COL, ROW };
 
 constexpr double MAX_RUNTIME   = 1.0;

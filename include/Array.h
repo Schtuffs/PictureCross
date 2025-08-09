@@ -46,5 +46,17 @@ public:
         }
         return *this;
     }
+
+    friend std::ostream& operator<<(std::ostream& cout, const Array& arr) noexcept {
+        cout << "{ ";
+        for (int i = 0; i < arr.size(); i++) {
+            cout << arr[i];
+            if (i != arr.size() - 1) {
+                cout << ", ";
+            }
+        }
+        cout << " }";
+        return cout;
+    }
 };
 
