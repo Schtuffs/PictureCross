@@ -1,6 +1,7 @@
 #include "Solver.h"
 
 #include "Defines.h"
+#include "Timer.h"
 
 // ----- Creation ----- Destruction -----
 
@@ -23,8 +24,25 @@ bool Solver::isComplete() {
     return (this->mSolvedLines == (this->mColSize + this->mRowSize));
 }
 
+// TODO - CHANGE TO BE QUICKER
 bool Solver::isComplete(const Line& line) const noexcept {
-    return false;
+    // Get valid squares
+    int valid = 0;
+    for (int i = 0; i < line.size(); i++) {
+        if (line[i] == STATE::VALID) {
+            valid++;
+        }
+    }
+
+    // Get head data
+    int exp = 0;
+    auto head = line.head();
+    for (int i = 0; i < head.size(); i++) {
+        exp += head[i];
+    }
+
+    // The check
+    return (valid == exp);
 }
 
 inline int Solver::lineSections(const Line& line) const noexcept {
@@ -93,12 +111,11 @@ const Grid& Solver::solve() {
 
     // Initial data fill ins
     this->initGrid();
-
+    
     // Main loop for filling new points while not completed
     while (!this->isComplete() && this->mRuntime < MAX_RUNTIME) {
         // Check columns
         for (int i = 0; i < this->mColCount; i++) {
-            break;
             this->check(TYPE::COL, i, this->mGrid.col(i));
         }
         
@@ -106,7 +123,6 @@ const Grid& Solver::solve() {
         for (int i = 0; i < this->mRowCount; i++) {
             this->check(TYPE::ROW, i, this->mGrid.row(i));
         }
-        break;
 
         // Runtime check
         clock_t current = clock();
@@ -142,6 +158,7 @@ void Solver::initGrid() noexcept {
             // Check if column is empty
             if (curCol.head()[0] == 0) {
                 this->fill(TYPE::COL, lineNum, 0, curCol.size(), STATE::INVALID);
+                continue;
             }
             
             int remain = calcRemaining(this->mGrid.col(lineNum));
@@ -169,6 +186,7 @@ void Solver::initGrid() noexcept {
             // Check if column is empty
             if (curRow.head()[0] == 0) {
                 this->fill(TYPE::ROW, lineNum, 0, curRow.size(), STATE::INVALID);
+                continue;
             }
 
             int remain = calcRemaining(this->mGrid.row(lineNum));
@@ -192,7 +210,7 @@ void Solver::initGrid() noexcept {
 inline void Solver::initCompleteLine(TYPE type, int lineNum, const Line& line) noexcept {
     // Loop through all data points and add them to grid
     int startIndex = 0;
-    for(int i = 0; i < line.size(); i++) {
+    for(int i = 0; i < line.head().size(); i++) {
         // Sets the valid data
         this->fill(type, lineNum, startIndex, line.head()[i], STATE::VALID);
 
@@ -210,7 +228,7 @@ inline void Solver::initCompleteLine(TYPE type, int lineNum, const Line& line) n
 inline void Solver::initIncompleteLine(TYPE type, int lineNum, int remain, const Line& line) noexcept {
     // Stores index for filling data
     int startIndex = 0;
-    for(int i = 0; i < line.size(); i++) {
+    for(int i = 0; i < line.head().size(); i++) {
         // Number of datapoints to fill
         int valueToFill = line.head()[i];
 
@@ -264,7 +282,7 @@ void Solver::completeLineSection(TYPE type, int lineNum, const Line& line) noexc
 void Solver::incompleteLineSection(TYPE type, int lineNum, int remain, const Line& line) noexcept {
     // Stores index for filling data
     int startIndex = 0;
-    for(int i = 0; i < line.size(); i++) {
+    for(int i = 0; i < line.head().size(); i++) {
         // Number of datapoints to fill
         int valueToFill = line.head()[i];
 

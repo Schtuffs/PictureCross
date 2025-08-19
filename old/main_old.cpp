@@ -37,14 +37,9 @@ int main(void) {
 }
 
 void mainMenu() {
-#ifdef _WIN32
-    system("cls");
-#elif __linux__
-    system("clear");
-#endif
     std::cout << "Main Menu"                                                    << std::endl;
-    std::cout << "1) Set a row"                                                 << std::endl;
-    std::cout << "2) Set a column"                                              << std::endl;
+    std::cout << "1) Set a column"                                              << std::endl;
+    std::cout << "2) Set a row"                                                 << std::endl;
     std::cout << "3) Get a row"                                                 << std::endl;
     std::cout << "4) Get a column"                                              << std::endl;
     std::cout << "5) Quick Solve"                                               << std::endl;
@@ -70,10 +65,10 @@ int getIntInput(int min, int max) {
 void determineUserSelection(PictureCrossGrid& grid, int userInput) {
     switch(userInput) {
         case 1:
-            setRow(grid);
+            setColumn(grid);
             break;
         case 2:
-            setColumn(grid);
+            setRow(grid);
             break;
         case 3:
             getRow(grid);

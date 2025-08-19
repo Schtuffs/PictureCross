@@ -6,10 +6,19 @@
 #include "Defines.h"
 
 class Solver {
+public:
+    Solver(const HeaderInfo& info);
+
+    const Grid& solve();
+    // Returns the runtime for the previous solve
+    double runtime() const noexcept;
+    
+    ~Solver();
+    
 private:
     HeaderInfo mInfo;
     Grid mGrid;
-    char mSolvedLines, mColCount, mRowCount, mColSize, mRowSize;
+    unsigned char mSolvedLines, mColCount, mRowCount, mColSize, mRowSize;
     double mRuntime;
 
     // ----- Read -----
@@ -47,17 +56,9 @@ private:
     // Solves an individual line section
     void lineSectionSolve(TYPE type, int lineNum, const Line& line) noexcept;
 
-    // Fills in the data when initializing grid with complete line
+    // Completes line that has all needed known values
     inline void completeLineSection(TYPE type, int lineNum, const Line& line) noexcept;
-    // Fills in as much data as possible when initializing grid with incomplete line
+    // Fills in as much data as possible for incomplete line
     inline void incompleteLineSection(TYPE type, int lineNum, int remain, const Line& line) noexcept;
-public:
-    Solver(const HeaderInfo& info);
-
-    const Grid& solve();
-    // Returns the runtime for the previous solve
-    double runtime() const noexcept;
-    
-    ~Solver();
 };
 
