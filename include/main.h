@@ -2,11 +2,13 @@
 
 #include "Array.h"
 #include "HeaderInfo.h"
+#include "Grid.h"
 
 // Output
 
 void mainMenu();
 void setConsoleColour(COLOUR col);
+void print(const HeaderInfo& info, const Grid& grid);
 
 // Input
 

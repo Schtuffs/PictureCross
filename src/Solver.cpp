@@ -3,10 +3,54 @@
 #include "Defines.h"
 #include "Timer.h"
 
+static bool sEndLoop = false;
+
 // ----- Creation ----- Destruction -----
 
-Solver::Solver(const HeaderInfo& info) : mInfo(info), mGrid(info.allCols(), info.allRows()), mSolvedLines(0), mColCount(info.col()), mRowCount(info.row()), mColSize(mInfo.row()), mRowSize(mInfo.col()) {}
-Solver::~Solver() {}
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+BOOL WINAPI EventHandler(DWORD dwType) {
+    switch (dwType) {
+        case CTRL_C_EVENT:
+            std::cout << "Ending solve\n";
+            sEndLoop = true;
+            return TRUE;
+        default:
+            break;
+    }
+    return FALSE;
+}
+#endif
+
+Solver::Solver(const HeaderInfo& info) : mInfo(info), mGrid(info.allCols(), info.allRows()), mSolvedLines(0), mColCount(info.col()), mRowCount(info.row()), mColSize(mInfo.row()), mRowSize(mInfo.col()), mSolvedCols(this->mColCount), mSolvedRows(this->mRowCount) {
+    // Mount event handler
+#ifdef _WIN32
+    if (!SetConsoleCtrlHandler(EventHandler, true)) {
+        std::cout << "Failed to set Ctrl+C event handler\n";
+    }
+#endif
+}
+Solver::~Solver() {
+    // Unmount event handler
+#ifdef _WIN32
+    if (!SetConsoleCtrlHandler(EventHandler, false)) {
+        std::cout << "Failed to remove Ctrl+C event handler\n";
+    }
+#endif
+}
+
+void Solver::reset() {
+    // Reset solved cols and rows
+    for (int i = 0; i < this->mSolvedCols.size(); i++) { this->mSolvedCols[i] = false; }
+    for (int i = 0; i < this->mSolvedRows.size(); i++) { this->mSolvedRows[i] = false; }
+
+    // New grid
+    this->mGrid = Grid(this->mInfo.allCols(), this->mInfo.allRows());
+
+    // Other data
+    this->mSolvedLines = 0;
+}
 
 
 
@@ -24,28 +68,46 @@ bool Solver::isComplete() {
     return (this->mSolvedLines == (this->mColSize + this->mRowSize));
 }
 
-// TODO - CHANGE TO BE QUICKER
-bool Solver::isComplete(const Line& line) const noexcept {
+bool Solver::isComplete(const LineData& data) noexcept {
+    // Check if complete
+    if (data.type == TYPE::COL) {
+        if (this->mSolvedCols[data.lineNum]) {
+            return true;
+        }
+    }
+    if (data.type == TYPE::ROW) {
+        if (this->mSolvedRows[data.lineNum]) {
+            return true;
+        }
+    }
+    
     // Get valid squares
     int valid = 0;
-    for (int i = 0; i < line.size(); i++) {
-        if (line[i] == STATE::VALID) {
+    for (int i = 0; i < data.line.size(); i++) {
+        if (data.line[i] == STATE::VALID) {
             valid++;
         }
     }
 
     // Get head data
     int exp = 0;
-    auto head = line.head();
+    auto head = data.line.head();
     for (int i = 0; i < head.size(); i++) {
         exp += head[i];
     }
 
-    // The check
-    return (valid == exp);
+    // Fill in if required
+    if (valid == exp) {
+        // Mark completion
+        this->markCompletion(data);
+
+        return true;
+    }
+    return false;
+    
 }
 
-inline int Solver::lineSections(const Line& line) const noexcept {
+int Solver::lineSections(const Line& line) const noexcept {
     // Start with first index
     bool inSection = (line[0] == STATE::INVALID ? false : true);
 
@@ -71,28 +133,32 @@ Array<Line> Solver::lineSplit(const Line& line) const noexcept {
     Array<Line> lines(line.sections());
 
     // Update the array with sublines
-    int searchIndex = 0, start = 0;
+    int searchIndex = 0, startIndex = 0;
+    bool inNewSection = false;
     for (int i = 0; i < lines.size(); i++) {
         // Find the size of the line
         int size = 0;
         while (searchIndex < line.size()) {
             if (line[searchIndex++] != STATE::INVALID) {
+                if (!inNewSection) {
+                    startIndex = searchIndex - 1;
+                    inNewSection = true;
+                }
                 size++;
             }
             else {
                 // Ensure line has a size, otherwise started on bad square
                 if (size == 0) {
-                    start = searchIndex;
                     continue;
                 }
+                inNewSection = false;
                 break;
             }
         }
         Array<int> head(1);
         head[0] = line.head()[i];
         lines[i] = Line(size, head);
-        lines[i].start(searchIndex - size - 1);
-        start = searchIndex;
+        lines[i].start(startIndex);
     }
 
     return lines;
@@ -104,30 +170,38 @@ Array<Line> Solver::lineSplit(const Line& line) const noexcept {
 
 const Grid& Solver::solve() {
     std::cout << "\nBeginning solve...\n";
+
+    // Reset data in case not new solver
+    this->reset();
     
     // Begin solve time
     clock_t begin = clock();
     this->mRuntime = 0;
-
+    
     // Initial data fill ins
     this->initGrid();
     
     // Main loop for filling new points while not completed
-    while (!this->isComplete() && this->mRuntime < MAX_RUNTIME) {
+    int loop = 1;
+    char buf[10];
+    while (!this->isComplete() && this->mRuntime < MAX_RUNTIME * 15 && !sEndLoop) {
         // Check columns
         for (int i = 0; i < this->mColCount; i++) {
-            this->check(TYPE::COL, i, this->mGrid.col(i));
+            this->check(LineData{TYPE::COL, i, this->mGrid.col(i)});
         }
         
         // Check rows
         for (int i = 0; i < this->mRowCount; i++) {
-            this->check(TYPE::ROW, i, this->mGrid.row(i));
+            this->check(LineData{TYPE::ROW, i, this->mGrid.row(i)});
         }
-
+        
         // Runtime check
         clock_t current = clock();
         this->mRuntime = (double)(current - begin) / (double)CLOCKS_PER_SEC;
+        loop++;
     }
+
+    sEndLoop = false;
     return this->mGrid;
 }
 
@@ -135,10 +209,19 @@ const Grid& Solver::solve() {
 
 // ----- Update ----- Private -----
 
+void Solver::markCompletion(const LineData& data) noexcept {
+    // Mark completion
+    (data.type == TYPE::COL ? this->mSolvedCols[data.lineNum] = true : this->mSolvedRows[data.lineNum] = true);
+    this->mSolvedLines++;
+
+    // Fill in complete line
+    this->fill(data.type, data.lineNum, 0, data.line.size(), STATE::INVALID);
+}
+
 // ----- Initializing -----
 
 // Calculates the remaining number of squares in the initial header data
-inline int calcRemaining(const Line& line) noexcept {
+int calcRemaining(const Line& line) noexcept {
     // Takes total cols/rows, accounts for extra spaces between, and calculates total amount of known data
     auto head = line.head();
     int remove = line.size() - (head.size() - 1);
@@ -166,14 +249,14 @@ void Solver::initGrid() noexcept {
             // All squares should be filled
             if (remain == 0) {
                 // Fill in data
-                this->initCompleteLine(TYPE::COL, lineNum, curCol);
+                this->initCompleteLine({ TYPE::COL, lineNum, curCol });
                 
                 // Completes dataset
                 this->mSolvedLines++;
             }
             else {
                 // Data doesn't fully fill section
-                this->initIncompleteLine(TYPE::COL, lineNum, remain, curCol);
+                this->initIncompleteLine({TYPE::COL, lineNum, curCol }, remain);
             }
         }
     }
@@ -194,163 +277,211 @@ void Solver::initGrid() noexcept {
             // All squares should be filled
             if (remain == 0) {
                 // Fill in data
-                this->initCompleteLine(TYPE::ROW, lineNum, curRow);
+                this->initCompleteLine({TYPE::ROW, lineNum, curRow});
                 
                 // Completes dataset
                 this->mSolvedLines++;
             }
             else {
                 // Data doesn't fully fill section
-                this->initIncompleteLine(TYPE::ROW, lineNum, remain, curRow);
+                this->initIncompleteLine({TYPE::ROW, lineNum, curRow}, remain);
             }
         }
     }
 }
 
-inline void Solver::initCompleteLine(TYPE type, int lineNum, const Line& line) noexcept {
+void Solver::initCompleteLine(const LineData& data) noexcept {
     // Loop through all data points and add them to grid
     int startIndex = 0;
-    for(int i = 0; i < line.head().size(); i++) {
+    for(int i = 0; i < data.line.head().size(); i++) {
         // Sets the valid data
-        this->fill(type, lineNum, startIndex, line.head()[i], STATE::VALID);
+        this->fill(data.type, data.lineNum, startIndex, data.line.head()[i], STATE::VALID);
 
         // Moves the start index for the invalid square
-        startIndex += line.head()[i];
+        startIndex += data.line.head()[i];
 
         // Adds the invalid square
-        this->fill(type, lineNum, startIndex, 1, STATE::INVALID);
+        this->fill(data.type, data.lineNum, startIndex, 1, STATE::INVALID);
 
         // Final update for after invalid square
         startIndex++;
     }
 }
 
-inline void Solver::initIncompleteLine(TYPE type, int lineNum, int remain, const Line& line) noexcept {
+void Solver::initIncompleteLine(const LineData& data, int remain) noexcept {
     // Stores index for filling data
     int startIndex = 0;
-    for(int i = 0; i < line.head().size(); i++) {
+    for(int i = 0; i < data.line.head().size(); i++) {
         // Number of datapoints to fill
-        int valueToFill = line.head()[i];
+        int valueToFill = data.line.head()[i];
 
         // Removes extra points for proper resizing
         valueToFill -= remain;
 
         // Fill in section data
-        this->fill(type, lineNum, startIndex + remain, valueToFill, STATE::VALID);
+        this->fill(data.type, data.lineNum, startIndex + remain, valueToFill, STATE::VALID);
 
         // Start index increases by the data value and extra space
-        startIndex += line.head()[i] + 1;
+        startIndex += data.line.head()[i] + 1;
     }
 }
 
 // ----- Looping -----
 
-void Solver::check(TYPE type, int lineNum, const Line& line) noexcept {
+void Solver::check(const LineData& data) noexcept {
     // See if complete
-    if (this->isComplete(line)) {
+    if (this->isComplete(data)) {
         return;
     }
 
-    // Check sections
-    int sections = this->lineSections((type == TYPE::COL ? this->mGrid.col(lineNum): this->mGrid.row(lineNum)));
-    if (sections == line.sections()) {
+    // Remove areas that are too small to hold data
+    this->removeSmallSections(data);
+
+    // Check sections are equal to required sections
+    int sections = this->lineSections(data.line);
+    if (sections == data.line.sections()) {
         // Split into smaller lines
-        Array<Line> split = lineSplit(line);
+        Array<Line> split = lineSplit(data.line);
         for (int i = 0; i < split.size(); i++) {
-            this->lineSectionSolve(type, lineNum, split[i]);
+            this->lineSectionSolve(LineData{ .type = data.type, .lineNum = data.lineNum, .line = split[i] });
+        }
+    }
+
+    // Fill in guarenteed edge data or complete edges
+    this->lineEdgeCheck(data);
+}
+
+void Solver::removeSmallSections(const LineData& data) noexcept {
+    // Find min
+    int min = data.line.head()[0];
+    for (int i = 1; i < data.line.head().size(); i++) {
+        if (min > data.line.head()[i]) {
+            min = data.line.head()[i];
+        }
+    }
+
+    // Check all sections are greater than min
+    int secStart = 0, totSq = 0;
+    bool inSec = false, inValidSec = false;
+    for (int i = 0; i < data.line.size(); i++) {
+        switch (data.line[i]) {
+            case STATE::VALID:
+                inValidSec = true;
+            case STATE::NONE:
+                // Put into section
+                if (!inSec) {
+                    secStart = i;
+                }
+                inSec = true;
+                totSq++;
+                break;
+
+            case STATE::INVALID:
+                // If not in section, continue searching for section
+                if (!inSec) {
+                    continue;
+                }
+
+                // Begin calculations
+                inSec = false;
+
+                // If in valid, do nothing since it will have data
+                if (inValidSec) {
+                    inValidSec = false;
+                    continue;
+                }
+
+                // Check squares
+                if (totSq < min) {
+                    // Too small
+                    this->fill(data.type, data.lineNum, secStart, totSq, STATE::INVALID);
+                }
+                
+                inValidSec = false;
+                totSq = 0;
+                break;
+            }
+    }
+
+    // Final check for edge of line
+    if (inSec && !inValidSec) {
+        // Check squares
+        if (totSq < min) {
+            // Too small
+            this->fill(data.type, data.lineNum, secStart, totSq, STATE::INVALID);
         }
     }
 }
 
-void Solver::lineSectionSolve(TYPE type, int lineNum, const Line& line) noexcept {
+void Solver::lineSectionSolve(const LineData& data) noexcept {
     // Check if section complete
-    int remain = calcRemaining(line);
+    int remain = calcRemaining(data.line);
     if (remain == 0) {
-        this->completeLineSection(type, lineNum, line);
-        this->mSolvedLines++;
+        this->completeLineSection(data);
     }
     else {
-        this->incompleteLineSection(type, lineNum, remain, line);
+        this->incompleteLineSection(data, remain);
     }
 }
 
-void Solver::completeLineSection(TYPE type, int lineNum, const Line& line) noexcept {
+void Solver::completeLineSection(const LineData& data) noexcept {
     // Sets the valid data
-    this->fill(type, lineNum, line.start(), line.size(), STATE::VALID);
+    this->fill(data.type, data.lineNum, data.line.start(), data.line.size(), STATE::VALID);
 }
 
-void Solver::incompleteLineSection(TYPE type, int lineNum, int remain, const Line& line) noexcept {
-    // Stores index for filling data
-    int startIndex = 0;
-    for(int i = 0; i < line.head().size(); i++) {
-        // Number of datapoints to fill
-        int valueToFill = line.head()[i];
+void Solver::incompleteLineSection(const LineData& data, int remain) noexcept {
+    // Fill in section data             (start of opening + remain)  (size of opening - remain)
+    this->fill(data.type, data.lineNum, data.line.start() + remain, data.line.head()[0] - remain, STATE::VALID);
+}
 
-        // Removes extra points for proper resizing
-        valueToFill -= remain;
-
-        // Fill in section data
-        this->fill(type, lineNum, startIndex + remain, valueToFill, STATE::VALID);
-
-        // Start index increases by the data value and extra space
-        startIndex += line.head()[i] + 1;
+void Solver::lineEdgeCheck(const LineData& data) noexcept {
+    // Check for left edge
+    for (int i = 0; i < data.line.head()[0]; i++) {
+        // Find a valid square
+        // if ()
     }
 }
 
 // ----- Other -----
 
 void Solver::fill(TYPE t, int line, int start, int spaces, STATE state) noexcept {
-    if (t == TYPE::COL) {
-        // Ensures data begins within bounds of the array
-        if (start >= this->mInfo.row()) {
-            return;
-        }
-        
-        for(int i = 0; i < spaces; i++) {
-            // Ensures that data can't out of index during looping
-            if (i + start >= this->mInfo.row()) {
-                return;
-            }
+    int lineMax = (t == TYPE::COL ? this->mInfo.row() : this->mInfo.col());
 
-            // Checks index is valid
-            if (i + start < 0) {
-                continue;
-            }
-            
-            // Check that spot isn't already filled in
-            if (this->mGrid.get(line, i + start) != STATE::NONE) {
-                continue;
-            }
-
-            // Sets data index to be proper state
-            this->mGrid.set(line, i + start, state);
-        }
+    // Ensures data begins within bounds of the array
+    if (start >= lineMax) {
         return;
     }
-    else if (t == TYPE::ROW) {
-        // Ensures data begins within bounds of the array
-        if (start >= this->mInfo.col()) {
+
+    // Loop through spaces
+    for(int i = 0; i < spaces; i++) {
+        // Setup selected column and row data
+        int col, row;
+        if (t == TYPE::COL) {
+            col = line;
+            row = i + start;
+        }
+        else {
+            col = i + start;
+            row = line;
+        }
+
+        // Ensures that data can't out of index during looping
+        if (i + start >= lineMax) {
             return;
         }
 
-        for(int i = 0; i < spaces; i++) {
-            // Ensures that data can't out of index during looping
-            if (i + start >= this->mInfo.col())
-                return;
-
-            // Checks index is valid
-            if (i + start < 0)
-                continue;
-
-            // Check that spot isn't already filled in
-            if (this->mGrid.get(i + start, line) != STATE::NONE) {
-                continue;
-            }
-
-            // Sets data index to be proper state
-            this->mGrid.set(i + start, line, state);
+        // Checks index is valid
+        if (i + start < 0) {
+            continue;
         }
-        return;
+        
+        // Check that spot isn't already filled in
+        if (this->mGrid.get(col, row) != STATE::NONE) {
+            continue;
+        }
+
+        // Sets data index to be proper state
+        this->mGrid.set(col, row, state);
     }
 }
 

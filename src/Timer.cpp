@@ -9,7 +9,7 @@ static TimeData timeStack[MAX_STACK];
 
 void Timer::begin() {
     // Check stack poiner in range
-    if (stackPointer == MAX_STACK) {
+    if (stackPointer >= MAX_STACK) {
         throw std::string("Too many times pushed on stack");
     }
 

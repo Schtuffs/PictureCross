@@ -2,7 +2,6 @@
 
 #include "Defines.h"
 #include "main.h"
-#include "Grid.h"
 #include "Solver.h"
 
 int main(int argc, char** argv) {

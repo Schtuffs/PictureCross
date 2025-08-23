@@ -29,15 +29,15 @@ public:
         delete [] this->mData;
     }
 
-    inline int size() const noexcept {
+    int size() const noexcept {
         return this->mSize;
     }
 
-    inline T& operator[](int index) const noexcept {
+    T& operator[](int index) const noexcept {
         return this->mData[index];
     }
 
-    inline Array& operator=(const Array& rhs) noexcept {
+    Array& operator=(const Array& rhs) noexcept {
         delete [] this->mData;
         this->mSize = rhs.mSize;
         this->mData = new T[this->mSize]();

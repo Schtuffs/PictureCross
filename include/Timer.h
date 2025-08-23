@@ -10,9 +10,9 @@ typedef struct TimeData {
 } TimeData;
 
 namespace Timer {
-    // Pushes a new timer onto a stack
+    // Pushes a new timer onto the stack
     void begin();
-    // Pops a time struct off the stack
+    // Pops most recent time struct off the stack
     TimeData end();
 }
 
