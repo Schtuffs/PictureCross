@@ -74,6 +74,9 @@ private:
     // Checks edges of line for possible data to fill
     void lineEdgeCheck(const LineData& data) noexcept;
 
+    // Fills in edge data
+    void fillEdge(const LineData& data, int startIndex, int endIndex, int validIndex, bool isLeft);
+
     // Completes line that has all needed known values
     void completeLineSection(const LineData& data) noexcept;
     // Fills in as much data as possible for incomplete line

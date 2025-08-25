@@ -45,7 +45,7 @@ int Line::start() const noexcept {
     return this->mStartIndex;
 }
 
-STATE Line::operator[](int index) const noexcept {
+STATE& Line::operator[](int index) const noexcept {
     return this->mCells[index];
 }
 

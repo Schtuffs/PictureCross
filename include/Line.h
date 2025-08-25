@@ -39,7 +39,7 @@ public:
 
     // ----- Others -----
     
-    STATE operator[](int index) const noexcept;
+    STATE& operator[](int index) const noexcept;
     friend std::ostream& operator<<(std::ostream& cout, const Line& line);
 };
 
