@@ -1,15 +1,11 @@
 #include <iostream>
+#include <print>
 
 #include "Defines.h"
 #include "main.h"
 #include "Solver.h"
 
 int main(int argc, char** argv) {
-    // Set to UTF-8 on Windows, instead of including windows.h
-#ifdef _WIN32
-    std::system("chcp 65001");
-#endif
-    
     // Clear console
     CON_CLEAR;
 
@@ -59,7 +55,7 @@ void setConsoleColour(COLOUR col) {
 }
 
 void print(const HeaderInfo& info, const Grid& grid) {
-    std::cout << "\n";
+    std::print("\n");
 
     // First, find largest column numbers
     int colSize = info.col(0).size();
@@ -89,7 +85,7 @@ void print(const HeaderInfo& info, const Grid& grid) {
 
             // Has proper indexing for printing
             if (index >= 0)
-                printf("%2d ", colInfo[index]);
+                printf(" %2d", colInfo[index]);
             // Else add spaces for alignment
             else
                 printf("   ");
@@ -125,19 +121,19 @@ void print(const HeaderInfo& info, const Grid& grid) {
             switch (gridRow[gI]) {
                 case STATE::VALID:
                     setConsoleColour(COLOUR::GREEN);
-                    std::cout << " ☐ ";
+                    std::print(" ☐ ");
                     break;
                 case STATE::INVALID:
                     setConsoleColour(COLOUR::RED);
-                    std::cout << " ☒ ";
+                    std::print(" ☒ ");
                     break;
                 case STATE::NONE:
                     setConsoleColour(COLOUR::CYAN);
-                    std::cout << " ? ";
+                    std::print(" ? ");
                     break;
                 default:
                     setConsoleColour(COLOUR::MAGENTA);
-                    std::cout << "ERR";
+                    std::print("ERR");
                     break;
             }
         }
