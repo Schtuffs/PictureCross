@@ -12,11 +12,13 @@ int main(int argc, char** argv) {
     // User input for grid
     int totalCols, totalRows;
 
+    // Get cols from user
     totalCols = intInput("Enter total number of columns: ", 1, 99);
     if (totalCols ==(int)CODES::EXIT) {
         return 0;
     }
-
+    
+    // Get rows from user
     totalRows = intInput("Enter total number of rows:    ", 1, 99);
     if (totalRows ==(int)CODES::EXIT) {
         return 0;
@@ -145,10 +147,15 @@ void print(const HeaderInfo& info, const Grid& grid) {
 int intInput(const std::string& text, int min, int max) {
     int input = 0;
     std::cout << text;
+
+    // Loop until valid input is received
     while (!(std::cin >> input) || (min > input || input > max)) {
-        if (input ==(int)CODES::EXIT && !std::cin.fail()) {
+        // Valid input
+        if (input == (int)CODES::EXIT && !std::cin.fail()) {
             break;
         }
+
+        // Fix invalid input
         std::cin.clear();
         std::cin.ignore(0x7fffffff, '\n');
         std::cout << "Invalid entry. Enter a number between " << min << " and " << max << ": ";
@@ -170,22 +177,22 @@ Array<int> multiIntInput(const std::string& text, int total, int min, int max) {
 }
 
 void determineInput(HeaderInfo& info, int input) {
-    switch (input) {
-        case(int)CODES::COLUMN: {
+    switch ((CODES)input) {
+        case CODES::COLUMN: {
             int col = intInput("Select a column: ", 1, info.col());
             int size = intInput("Enter the number of values: ", 1, info.row());
             auto vals = multiIntInput("Enter column info: ", size, 1, info.row());
             info.setCol(col, vals);
             break;
         }
-        case(int)CODES::ROW: {
+        case CODES::ROW: {
             int row = intInput("Select a row: ", 1, info.row());
             int size = intInput("Enter the number of values: ", 1, info.col());
             auto vals = multiIntInput("Enter row info: ", size, 1, info.col());
             info.setRow(row, vals);
             break;
         }
-        case(int)CODES::SOLVE: {
+        case CODES::SOLVE: {
             // Solve
             Solver solver(info);
             Grid grid = solver.solve();
@@ -195,7 +202,7 @@ void determineInput(HeaderInfo& info, int input) {
             std::cout << "Total runtime: " << solver.runtime() << "s\n";
             break;
         }
-        case(int)CODES::EXIT: {
+        case CODES::EXIT: {
             std::cout << "Exiting\n";
             exit(EXIT_SUCCESS);
             break;
