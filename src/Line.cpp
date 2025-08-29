@@ -21,19 +21,19 @@ Line::~Line() {}
 
 // ----- Read -----
 
-int Line::size() const noexcept {
+int Line::size() const {
     return this->mSize;
 }
 
-const Array<int>& Line::head() const noexcept {
+const Array<int>& Line::head() const {
     return this->mHead;
 }
 
-int Line::sections() const noexcept {
+int Line::sections() const {
     return this->mHead.size();
 }
 
-STATE Line::get(int i) const noexcept {
+STATE Line::get(int i) const {
     // Check index
     if (0 > i || i > this->mSize) {
         return STATE::UNKNOWN;
@@ -41,11 +41,11 @@ STATE Line::get(int i) const noexcept {
     return this->mCells[i];
 }
 
-int Line::start() const noexcept {
+int Line::start() const {
     return this->mStartIndex;
 }
 
-STATE& Line::operator[](int index) const noexcept {
+STATE& Line::operator[](int index) const {
     return this->mCells[index];
 }
 
@@ -79,7 +79,7 @@ std::ostream& operator<<(std::ostream& cout, const Line& line) {
 
 // ----- Update -----
 
-bool Line::set(int index, STATE state) noexcept {
+bool Line::set(int index, STATE state) {
     // Check index
     if (0 > index || index >= this->mSize) {
         return false;
@@ -90,11 +90,11 @@ bool Line::set(int index, STATE state) noexcept {
     return true;
 }
 
-void Line::head(const Array<int>& head) noexcept {
+void Line::head(const Array<int>& head) {
     this->mHead = head;
 }
 
-void Line::start(int index) noexcept {
+void Line::start(int index) {
     this->mStartIndex = index;
 }
 

@@ -5,9 +5,9 @@
 typedef struct TimeData {
     long begin, end;
     double total;
-
-    friend std::ostream& operator<<(std::ostream& cout, const TimeData& data);
 } TimeData;
+
+std::ostream& operator<<(std::ostream& cout, const TimeData& data);
 
 namespace Timer {
     // Pushes a new timer onto the stack

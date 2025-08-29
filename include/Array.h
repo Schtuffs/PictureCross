@@ -29,15 +29,15 @@ public:
         delete [] this->mData;
     }
 
-    int size() const noexcept {
+    int size() const {
         return this->mSize;
     }
 
-    T& operator[](int index) const noexcept {
+    T& operator[](int index) const {
         return this->mData[index];
     }
 
-    Array& operator=(const Array& rhs) noexcept {
+    Array& operator=(const Array& rhs) {
         delete [] this->mData;
         this->mSize = rhs.mSize;
         this->mData = new T[this->mSize]();
@@ -47,7 +47,7 @@ public:
         return *this;
     }
 
-    friend std::ostream& operator<<(std::ostream& cout, const Array& arr) noexcept {
+    friend std::ostream& operator<<(std::ostream& cout, const Array& arr) {
         cout << "{ ";
         for (int i = 0; i < arr.size(); i++) {
             cout << arr[i];

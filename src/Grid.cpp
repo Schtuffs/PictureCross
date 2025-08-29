@@ -26,7 +26,7 @@ Grid::~Grid() {}
 
 // ----- Read -----
 
-const Line& Grid::col(int index) const noexcept {
+const Line& Grid::col(int index) const {
     if (0 > index || index > this->mCols.size()) {
         return this->mCols[0];
     }
@@ -34,14 +34,14 @@ const Line& Grid::col(int index) const noexcept {
     return this->mCols[index];
 }
 
-const Line& Grid::row(int index) const noexcept {
+const Line& Grid::row(int index) const {
     if (0 > index || index > (int)this->mCells.size()) {
         return this->mRows[0];
     }
     return this->mRows[index];
 }
 
-STATE Grid::get(int col, int row) const noexcept {
+STATE Grid::get(int col, int row) const {
     if (0 > col || col > this->mCells[0].size()) {
         return STATE::UNKNOWN;
     }
@@ -55,7 +55,7 @@ STATE Grid::get(int col, int row) const noexcept {
 
 // ----- Update -----
 
-bool Grid::set(int col, int row, STATE state) noexcept {
+bool Grid::set(int col, int row, STATE state) {
     // Check indexing
     if (0 > col || col > this->mCells[0].size()) {
         return false;

@@ -17,7 +17,7 @@ public:
 
     const Grid& solve();
     // Returns the runtime for the previous solve
-    double runtime() const noexcept;
+    double runtime() const;
     
     ~Solver();
     
@@ -33,53 +33,53 @@ private:
     // ----- Read -----
 
     bool isComplete();
-    bool isComplete(const LineData& line) noexcept;
+    bool isComplete(const LineData& line);
 
     // ----- Gathering -----
 
     // Find how many sections are in the line
-    int lineSections(const Line& line) const noexcept;
+    int lineSections(const Line& line) const;
 
     // Splits line into the smaller sections based on expected sections
-    Array<Line> lineSplit(const Line& line) const noexcept;
+    Array<Line> lineSplit(const Line& line) const;
 
     // Marks given line as completed
-    void markCompletion(const LineData& data) noexcept;
+    void markCompletion(const LineData& data);
 
     // ----- Update -----
     
     // Fills in specified area
-    void fill(TYPE t, int line, int start, int spaces, STATE state) noexcept;
+    void fill(TYPE t, int line, int start, int spaces, STATE state);
 
     // ----- Initializing -----
 
     // Fills in the beginning header data
-    void initGrid() noexcept;
+    void initGrid();
     // Fills in the data when initializing grid with complete line
-    void initCompleteLine(const LineData& data) noexcept;
+    void initCompleteLine(const LineData& data);
     // Fills in as much data as possible when initializing grid with incomplete line
-    void initIncompleteLine(const LineData& data, int remain) noexcept;
+    void initIncompleteLine(const LineData& data, int remain);
     
     // ----- Looping -----
     
     // Checks a line and performs necessary logic to complete it more
-    void check(const LineData& data) noexcept;
+    void check(const LineData& data);
 
     // Removes any areas in the line that are too small to hold the required data
-    void removeSmallSections(const LineData& data) noexcept;
+    void removeSmallSections(const LineData& data);
     
     // Solves an individual line section
-    void lineSectionSolve(const LineData& data) noexcept;
+    void lineSectionSolve(const LineData& data);
 
     // Checks edges of line for possible data to fill
-    void lineEdgeCheck(const LineData& data) noexcept;
+    void lineEdgeCheck(const LineData& data);
 
     // Fills in edge data
     void fillEdge(const LineData& data, int startIndex, int endIndex, int validIndex, bool isLeft);
 
     // Completes line that has all needed known values
-    void completeLineSection(const LineData& data) noexcept;
+    void completeLineSection(const LineData& data);
     // Fills in as much data as possible for incomplete line
-    void incompleteLineSection(const LineData& data, int remain) noexcept;
+    void incompleteLineSection(const LineData& data, int remain);
 };
 

@@ -56,7 +56,7 @@ void Solver::reset() {
 
 // ----- Read -----
 
-double Solver::runtime() const noexcept {
+double Solver::runtime() const {
     return this->mRuntime;
 }
 
@@ -68,7 +68,7 @@ bool Solver::isComplete() {
     return (this->mSolvedLines == (this->mColSize + this->mRowSize));
 }
 
-bool Solver::isComplete(const LineData& data) noexcept {
+bool Solver::isComplete(const LineData& data) {
     // Check if complete
     if (data.type == TYPE::COL) {
         if (this->mSolvedCols[data.lineNum]) {
@@ -107,7 +107,7 @@ bool Solver::isComplete(const LineData& data) noexcept {
     
 }
 
-int Solver::lineSections(const Line& line) const noexcept {
+int Solver::lineSections(const Line& line) const {
     // Start with first index
     bool inSection = (line[0] == STATE::INVALID ? false : true);
 
@@ -128,7 +128,7 @@ int Solver::lineSections(const Line& line) const noexcept {
     return sections;
 }
 
-Array<Line> Solver::lineSplit(const Line& line) const noexcept {
+Array<Line> Solver::lineSplit(const Line& line) const {
     // Create the array
     Array<Line> lines(line.sections());
 
@@ -206,7 +206,7 @@ const Grid& Solver::solve() {
 
 // ----- Update ----- Private -----
 
-void Solver::markCompletion(const LineData& data) noexcept {
+void Solver::markCompletion(const LineData& data) {
     // Mark completion
     (data.type == TYPE::COL ? this->mSolvedCols[data.lineNum] = true : this->mSolvedRows[data.lineNum] = true);
     this->mSolvedLines++;
@@ -218,7 +218,7 @@ void Solver::markCompletion(const LineData& data) noexcept {
 // ----- Initializing -----
 
 // Calculates the remaining number of squares in the initial header data
-int calcRemaining(const Line& line) noexcept {
+int calcRemaining(const Line& line) {
     // Takes total cols/rows, accounts for extra spaces between, and calculates total amount of known data
     auto head = line.head();
     int remove = line.size() - (head.size() - 1);
@@ -228,7 +228,7 @@ int calcRemaining(const Line& line) noexcept {
     return remove;
 }
 
-void Solver::initGrid() noexcept {
+void Solver::initGrid() {
     // 0 - Cols
     // 1 - Rows
     for (int i = 0; i < 2; i++) {
@@ -266,7 +266,7 @@ void Solver::initGrid() noexcept {
     }
 }
 
-void Solver::initCompleteLine(const LineData& data) noexcept {
+void Solver::initCompleteLine(const LineData& data) {
     // Loop through all data points and add them to grid
     int startIndex = 0;
     for(int i = 0; i < data.line.head().size(); i++) {
@@ -281,7 +281,7 @@ void Solver::initCompleteLine(const LineData& data) noexcept {
     }
 }
 
-void Solver::initIncompleteLine(const LineData& data, int remain) noexcept {
+void Solver::initIncompleteLine(const LineData& data, int remain) {
     // Stores index for filling data
     int startIndex = 0;
     for(int i = 0; i < data.line.head().size(); i++) {
@@ -301,7 +301,7 @@ void Solver::initIncompleteLine(const LineData& data, int remain) noexcept {
 
 // ----- Looping -----
 
-void Solver::check(const LineData& data) noexcept {
+void Solver::check(const LineData& data) {
     // See if complete
     if (this->isComplete(data)) {
         return;
@@ -324,7 +324,7 @@ void Solver::check(const LineData& data) noexcept {
     this->lineEdgeCheck(data);
 }
 
-void Solver::removeSmallSections(const LineData& data) noexcept {
+void Solver::removeSmallSections(const LineData& data) {
     // Find min
     int min = data.line.head()[0];
     for (int i = 1; i < data.line.head().size(); i++) {
@@ -386,7 +386,7 @@ void Solver::removeSmallSections(const LineData& data) noexcept {
     }
 }
 
-void Solver::lineSectionSolve(const LineData& data) noexcept {
+void Solver::lineSectionSolve(const LineData& data) {
     // Check if section complete
     int remain = calcRemaining(data.line);
     if (remain == 0) {
@@ -397,18 +397,18 @@ void Solver::lineSectionSolve(const LineData& data) noexcept {
     }
 }
 
-void Solver::completeLineSection(const LineData& data) noexcept {
+void Solver::completeLineSection(const LineData& data) {
     // Sets the valid data
     this->fill(data.type, data.lineNum, data.line.start(), data.line.size(), STATE::VALID);
 }
 
-void Solver::incompleteLineSection(const LineData& data, int remain) noexcept {
+void Solver::incompleteLineSection(const LineData& data, int remain) {
     // Fill in section data             (start of opening + remain)  (size of opening - remain)
     this->fill(data.type, data.lineNum, data.line.start() + remain, data.line.head()[0] - remain, STATE::VALID);
 }
 
 // Returns edge-most valid index
-int edgeCheck(const LineData& data, int* startIndex, int* endIndex, int* openSquares, bool isLeft) noexcept {
+int edgeCheck(const LineData& data, int* startIndex, int* endIndex, int* openSquares, bool isLeft) {
     // Setup for traversing
     int incrementer = (isLeft ? 1 : -1), begin = (isLeft ? 0 : data.line.size() - 1), validIndex = -1;
     bool isValidFound = false, isOpeningFound = false;
@@ -450,7 +450,7 @@ int edgeCheck(const LineData& data, int* startIndex, int* endIndex, int* openSqu
     return validIndex;
 }
 
-void Solver::lineEdgeCheck(const LineData& data) noexcept {
+void Solver::lineEdgeCheck(const LineData& data) {
     int startIndex = -1, openSquares = 0, endIndex = -1;
 
     // Check for left edge
@@ -505,7 +505,7 @@ void Solver::fillEdge(const LineData& data, int startIndex, int endIndex, int va
 
 // ----- Other -----
 
-void Solver::fill(TYPE t, int line, int start, int spaces, STATE state) noexcept {
+void Solver::fill(TYPE t, int line, int start, int spaces, STATE state) {
     int lineMax = (t == TYPE::COL ? this->mInfo.row() : this->mInfo.col());
 
     // Ensures data begins within bounds of the array

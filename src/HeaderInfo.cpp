@@ -16,30 +16,30 @@ HeaderInfo::~HeaderInfo() {
 
 // ----- Read -----
 
-int HeaderInfo::col() const noexcept {
+int HeaderInfo::col() const {
     return this->mDataCol.size();
 }
 
-int HeaderInfo::row() const noexcept {
+int HeaderInfo::row() const {
     return this->mDataRow.size();
 }
 
-const Array<Array<int>>& HeaderInfo::allCols() const noexcept {
+const Array<Array<int>>& HeaderInfo::allCols() const {
     return this->mDataCol;
 }
 
-const Array<Array<int>>& HeaderInfo::allRows() const noexcept {
+const Array<Array<int>>& HeaderInfo::allRows() const {
     return this->mDataRow;
 }
 
-const Array<int>& HeaderInfo::col(int index) const noexcept {
+const Array<int>& HeaderInfo::col(int index) const {
     if (index < 0 || index > (int)this->mDataCol.size()) {
         return this->mDataCol[0];
     }
     return this->mDataCol[index];
 }
 
-const Array<int>& HeaderInfo::row(int index) const noexcept {
+const Array<int>& HeaderInfo::row(int index) const {
     if (index < 0 || index > (int)this->mDataRow.size()) {
         return this->mDataRow[0];
     }
